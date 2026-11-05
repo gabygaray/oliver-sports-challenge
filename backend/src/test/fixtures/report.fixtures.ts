@@ -1,5 +1,7 @@
 import { MetricKey, SessionType } from '../../shared/enums';
-import { PlayerMetricsRow, SessionSummary, ThresholdMap } from '../sessions/sessions.types';
+import { PlayerMetricsRow, SessionSummary, ThresholdMap } from '../../modules/sessions/sessions.types';
+import { buildReportContext, detectThresholdAlerts } from '../../modules/reports/report-context';
+import { ReportContext } from '../../modules/reports/reports.types';
 
 /** Small roster that covers the dataset's edge cases: a missing RPE, a reduced-minutes player and limit values. */
 export const SESSION_FIXTURE: SessionSummary = { id: 103, date: '2026-09-19', title: 'Partido amistoso', type: SessionType.Match, duration_min: 90 };
@@ -24,6 +26,10 @@ const row = (overrides: Partial<PlayerMetricsRow> & Pick<PlayerMetricsRow, 'play
     workload_au: 540,
     ...overrides,
 });
+
+/** Model context for the fixture, alerts included. */
+export const buildFixtureContext = (rows: PlayerMetricsRow[] = ROWS_FIXTURE, thresholds: ThresholdMap = THRESHOLDS_FIXTURE): ReportContext =>
+    buildReportContext(SESSION_FIXTURE, rows, detectThresholdAlerts(rows, thresholds));
 
 export const ROWS_FIXTURE: PlayerMetricsRow[] = [
     row({ player_id: 1, player_name: 'Nicolás Herrera', position: 'GK', total_distance_m: 3900, sprints: 1, rpe: 4, workload_au: 360 }),

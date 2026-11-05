@@ -4,6 +4,7 @@ export * from './EvolutionSessionsTable';
 export * from './EvolutionTrends';
 export * from './MetricCell';
 export * from './MetricChart';
+export * from './MetricColumnHeader';
 export * from './MetricsTable';
 export * from './MetricsTableSection';
 export * from './ReportAlerts';

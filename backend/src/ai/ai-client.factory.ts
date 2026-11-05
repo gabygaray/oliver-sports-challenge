@@ -10,6 +10,7 @@ const aiClient: AiClient | null = env.AI_API_KEY
           model: env.AI_MODEL,
           timeoutMs: env.AI_TIMEOUT_MS,
           reasoningEffort: env.AI_REASONING_EFFORT,
+          reasoningTokensAllowance: env.AI_REASONING_TOKENS_ALLOWANCE,
       })
     : null;
 

@@ -1,9 +1,9 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 import { logger } from '../config/logger';
 import { AiAbortedError, AiAuthError, AiInvalidResponseError, AiProviderError, AiRateLimitError, AiTimeoutError } from './ai.errors';
-import { AiClient, AiDeltaHandler, AiJsonRequest, AiJsonResponse, OpenAiCompatibleConfig } from './ai.types';
-import { MAX_SEND_ATTEMPTS, retryDelayMs } from './ai.constants';
-import { ChatCompletionResponse } from './openai-compatible.types';
+import { AiClient, AiDeltaHandler, AiJsonRequest, AiJsonResponse, AiUsage, OpenAiCompatibleConfig } from './ai.types';
+import { FINISH_REASON_LENGTH, MAX_SEND_ATTEMPTS, retryDelayMs } from './ai.constants';
+import { ChatCompletionResponse, ChatMessage } from './openai-compatible.types';
 import { readCompletionStream } from './sse-stream.reader';
 
 /** Chat completions client for any OpenAI-compatible API (Gemini, Groq, OpenRouter, Ollama). */
@@ -18,7 +18,8 @@ export class OpenAiCompatibleClient implements AiClient {
         return this.withTimeout(request.signal, async (signal) => {
             const response = await this.send(this.buildBody(request, false), signal);
             const completion = (await response.json()) as ChatCompletionResponse;
-            return this.toJsonResponse(completion.choices?.[0]?.message?.content, completion.model, completion.usage);
+            const choice = completion.choices?.[0];
+            return this.toJsonResponse(choice?.message?.content, completion.model, completion.usage, choice?.finish_reason);
         });
     }
 
@@ -26,33 +27,56 @@ export class OpenAiCompatibleClient implements AiClient {
         return this.withTimeout(request.signal, async (signal) => {
             const response = await this.send(this.buildBody(request, true), signal);
             const streamed = await readCompletionStream(response, onDelta);
-            return this.toJsonResponse(streamed.text, streamed.model, streamed.usage);
+            return this.toJsonResponse(streamed.text, streamed.model, streamed.usage, streamed.finishReason);
         });
     }
 
     private buildBody(request: AiJsonRequest, stream: boolean): unknown {
         return {
             model: this.model,
-            temperature: request.temperature ?? 0.3,
-            max_tokens: request.maxTokens,
+            temperature: request.temperature,
+            max_tokens: this.outputLimit(request.maxTokens),
             reasoning_effort: this.config.reasoningEffort,
             response_format: { type: 'json_object' },
             stream,
-            messages: [
-                { role: 'system', content: request.system },
-                { role: 'user', content: request.user },
-            ],
+            messages: this.buildMessages(request),
         };
     }
 
-    private toJsonResponse(content?: string | null, model?: string, usage?: ChatCompletionResponse['usage']): AiJsonResponse {
+    /** Reasoning tokens share max_tokens with the answer, so they get their own allowance. */
+    private outputLimit(maxTokens?: number): number | undefined {
+        if (maxTokens === undefined) return undefined;
+        const reasoning = this.config.reasoningEffort !== undefined && this.config.reasoningEffort !== 'none';
+        return reasoning ? maxTokens + this.config.reasoningTokensAllowance : maxTokens;
+    }
+
+    /** A retry replays the rejected answer as an assistant turn and the feedback as the next user turn. */
+    private buildMessages({ system, user, retry }: AiJsonRequest): ChatMessage[] {
+        const messages: ChatMessage[] = [
+            { role: 'system', content: system },
+            { role: 'user', content: user },
+        ];
+        if (retry) messages.push({ role: 'assistant', content: retry.previousAnswer }, { role: 'user', content: retry.feedback });
+        return messages;
+    }
+
+    /** A truncated completion is never parsed: it is reported as such so the retry asks for a shorter answer. */
+    private toJsonResponse(
+        content?: string | null,
+        model?: string,
+        usage?: ChatCompletionResponse['usage'],
+        finishReason?: string | null,
+    ): AiJsonResponse {
         const text = content?.trim() ?? '';
-        if (!text) throw new AiInvalidResponseError('empty completion', text);
+        const truncated = finishReason === FINISH_REASON_LENGTH;
+        if (!text && !truncated) throw new AiInvalidResponseError('empty completion', text);
 
         return {
-            json: parseJson(text),
+            json: truncated ? null : parseJson(text),
+            text,
+            truncated,
             model: model ?? this.model,
-            usage: usage ? { input_tokens: usage.prompt_tokens ?? 0, output_tokens: usage.completion_tokens ?? 0 } : null,
+            usage: usage ? toUsage(usage) : null,
         };
     }
 
@@ -104,6 +128,12 @@ export class OpenAiCompatibleClient implements AiClient {
         return new AiProviderError(response.status, detail);
     }
 }
+
+const toUsage = (usage: ChatCompletionResponse['usage'] & object): AiUsage => ({
+    input_tokens: usage.prompt_tokens ?? 0,
+    output_tokens: usage.completion_tokens ?? 0,
+    reasoning_tokens: usage.completion_tokens_details?.reasoning_tokens ?? null,
+});
 
 /** Some models wrap JSON in markdown fences even in JSON mode; strip them before parsing. */
 const parseJson = (text: string): unknown => {

@@ -5,17 +5,25 @@ import {
   Select,
   SelectChangeEvent,
 } from '@mui/material';
-import { BarChart } from '@mui/x-charts/BarChart';
 import { ChartsReferenceLine } from '@mui/x-charts/ChartsReferenceLine';
 
 import { Section } from '../../../components';
 import { MetricKey } from '../../../models';
-import { formatMetricWithUnit, METRIC_KEYS, METRIC_LABELS } from '../../../utilities';
+import {
+  formatMetricLabelWithUnit,
+  formatMetricValue,
+  formatMetricWithUnit,
+  METRIC_KEYS,
+  METRIC_LABELS,
+} from '../../../utilities';
 import { ALERT_LINE_LABELS, DASHBOARD_CONTENT } from '../content';
 import { useMetricChart } from '../hooks';
+import { StyledBarChart } from '../styled-components';
 import {
+  CHART_AXIS_LABEL_STYLE,
   CHART_HEIGHT,
   CHART_LABEL_KEY,
+  CHART_MARGIN,
   CHART_VALUE_KEY,
   IMetricChartProps,
   SELECT_LABEL_IDS,
@@ -53,7 +61,7 @@ export const MetricChart = ({ players, thresholds }: IMetricChartProps) => {
         </FormControl>
       }
     >
-      <BarChart
+      <StyledBarChart
         height={CHART_HEIGHT}
         dataset={bars.map(({ label, value }) => ({
           [CHART_LABEL_KEY]: label,
@@ -63,12 +71,17 @@ export const MetricChart = ({ players, thresholds }: IMetricChartProps) => {
           {
             scaleType: 'band',
             dataKey: CHART_LABEL_KEY,
+            label: DASHBOARD_CONTENT.chart.playerAxis,
+            tickLabelStyle: CHART_AXIS_LABEL_STYLE,
             colorMap: {
               type: 'ordinal',
               values: bars.map(({ label }) => label),
               colors: barColors,
             },
           },
+        ]}
+        yAxis={[
+          { label: formatMetricLabelWithUnit(metric), valueFormatter: formatMetricValue },
         ]}
         series={[
           {
@@ -78,7 +91,7 @@ export const MetricChart = ({ players, thresholds }: IMetricChartProps) => {
           },
         ]}
         slotProps={{ legend: { hidden: true } }}
-        margin={{ left: 64 }}
+        margin={CHART_MARGIN}
       >
         {referenceLines.map(({ level, value, color, labelColor }) => (
           <ChartsReferenceLine
@@ -90,7 +103,7 @@ export const MetricChart = ({ players, thresholds }: IMetricChartProps) => {
             labelStyle={{ fill: labelColor, fontSize: 12 }}
           />
         ))}
-      </BarChart>
+      </StyledBarChart>
     </Section>
   );
 };

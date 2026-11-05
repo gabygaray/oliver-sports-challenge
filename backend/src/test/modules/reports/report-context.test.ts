@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { MetricKey } from '../../shared/enums';
-import { buildReportContext, buildTeamAggregates, detectThresholdAlerts, findMetricLeaders } from './report-context';
-import { ROWS_FIXTURE, SESSION_FIXTURE, THRESHOLDS_FIXTURE } from './report.fixtures';
+import { MetricKey } from '../../../shared/enums';
+import { buildTeamAggregates, detectThresholdAlerts, findMetricLeaders } from '../../../modules/reports/report-context';
+import { buildFixtureContext, ROWS_FIXTURE, SESSION_FIXTURE, THRESHOLDS_FIXTURE } from '../../fixtures/report.fixtures';
 
 const alertsOf = (playerId: number) => detectThresholdAlerts(ROWS_FIXTURE, THRESHOLDS_FIXTURE).filter((alert) => alert.player_id === playerId);
 
@@ -60,13 +60,13 @@ describe('buildTeamAggregates', () => {
     const team = buildTeamAggregates(ROWS_FIXTURE, SESSION_FIXTURE.duration_min);
 
     it('lists players without RPE and averages RPE over the rest', () => {
-        expect(team.players_without_rpe).toEqual([3]);
+        expect(team.players_without_rpe).toEqual([{ player_id: 3, player_name: 'Mateo Suárez' }]);
         // (4 + 9 + 9 + 7 + 8 + 5) / 6
         expect(team.avg_rpe).toBe(7);
     });
 
     it('flags players below 75% of the session minutes', () => {
-        expect(team.players_with_reduced_minutes).toEqual([{ player_id: 16, minutes_played: 28 }]);
+        expect(team.players_with_reduced_minutes).toEqual([{ player_id: 16, player_name: 'Franco Medina', minutes_played: 28 }]);
         expect(team.players_with_full_minutes).toBe(6);
     });
 
@@ -82,12 +82,39 @@ describe('buildTeamAggregates', () => {
 });
 
 describe('buildReportContext', () => {
-    it('bundles session, aggregates, alerts, leaders and the full roster', () => {
-        const context = buildReportContext(SESSION_FIXTURE, ROWS_FIXTURE, THRESHOLDS_FIXTURE);
+    const context = buildFixtureContext();
 
+    it('bundles session, aggregates, leaders and the full roster', () => {
         expect(context.session).toBe(SESSION_FIXTURE);
         expect(context.players).toHaveLength(ROWS_FIXTURE.length);
-        expect(context.alerts.length).toBeGreaterThan(0);
-        expect(context.thresholds).toBe(THRESHOLDS_FIXTURE);
+        expect(Object.keys(context.leaders)).toHaveLength(5);
+    });
+
+    it('sends only the critical alerts and keeps the thresholds out, so a warning can never be attributed', () => {
+        expect(context.critical_alerts.map((alert) => alert.player_name).sort()).toEqual(['Bruno Acosta', 'Santiago Molina']);
+        expect(context.critical_alerts.every((alert) => alert.level === 'critical')).toBe(true);
+        expect(context).not.toHaveProperty('alerts');
+        expect(context).not.toHaveProperty('thresholds');
+    });
+
+    it('reports zero alerts of each level for a quiet session instead of omitting the summary', () => {
+        const quiet = buildFixtureContext(ROWS_FIXTURE, {});
+        expect(quiet.alerts_summary).toEqual({ critical: 0, warning: 0, players_affected: 0, metrics: [] });
+        expect(quiet.critical_alerts).toEqual([]);
+    });
+
+    it('summarises the alerts so the model never counts them', () => {
+        // Molina and Acosta exceed the critical workload limit; the warnings are their distance, sprints and RPE values plus Álvarez's workload.
+        expect(context.alerts_summary).toEqual({
+            critical: 2,
+            warning: 5,
+            players_affected: 3,
+            metrics: expect.arrayContaining([MetricKey.WorkloadAu, MetricKey.TotalDistanceM, MetricKey.Sprints, MetricKey.Rpe]),
+        });
+    });
+
+    it('keeps the player id but not the shirt number in the rows sent to the model', () => {
+        expect(context.players[0]).toHaveProperty('player_id');
+        expect(context.players[0]).not.toHaveProperty('shirt_number');
     });
 });

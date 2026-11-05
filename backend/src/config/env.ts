@@ -19,6 +19,8 @@ const envSchema = z.object({
     AI_TIMEOUT_MS: z.coerce.number().int().positive().default(30000),
     // Reports are prose over precomputed figures, so model reasoning only adds latency. Unset it for providers that reject the field.
     AI_REASONING_EFFORT: z.preprocess((value) => (value === '' ? undefined : value), z.enum(['none', 'low', 'medium', 'high']).optional()),
+    // Gemini counts reasoning tokens against max_tokens; added on top of the prose limit while reasoning is on.
+    AI_REASONING_TOKENS_ALLOWANCE: z.coerce.number().int().nonnegative().default(1500),
 });
 
 const parsed = envSchema.safeParse(process.env);

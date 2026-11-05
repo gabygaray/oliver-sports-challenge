@@ -10,15 +10,16 @@ import { ReportParams } from '../reports/reports.schemas';
 import { ReportProgress } from '../reports/reports.types';
 import { toPlayerMetricsRow, toSessionSummary, toThresholdMap } from '../sessions/sessions.mappers';
 import { findTeamThresholds } from '../sessions/sessions.repository';
-import { buildEvolutionContext } from './evolution-context';
+import { buildEvolutionContext, buildPlayerSessionRows } from './evolution-context';
 import { validateEvolutionAgainstContext } from './evolution-validator';
 import { toPlayerSummary } from './players.mappers';
 import { findAllPlayers, findPlayerById, findPlayerSessions } from './players.repository';
 import { modelEvolutionSchema } from './players.schemas';
-import { EvolutionContext, PlayerEvolutionReport, PlayerSummary } from './players.types';
+import { EvolutionContext, PlayerEvolutionReport, PlayerSessionRow, PlayerSummary } from './players.types';
 import {
     buildEvolutionSystemPrompt,
     buildEvolutionUserPrompt,
+    PLAYER_EVOLUTION_MAX_TOKENS,
     PLAYER_EVOLUTION_PROMPT_VERSION,
     PLAYER_EVOLUTION_TEMPERATURE,
 } from './prompts/player-evolution.prompt';
@@ -47,8 +48,10 @@ export const generatePlayerEvolutionReport = async (
     if (!rows.length) throw new HttpError(422, 'PLAYER_WITHOUT_SESSIONS', `Player ${playerId} has no recorded sessions`);
 
     // The context is built before the cache lookup because its hash is part of the key.
+    const summary = toPlayerSummary(player);
     const inputs = rows.map((row) => ({ session: toSessionSummary(row.session!), row: toPlayerMetricsRow(row) }));
-    const context = buildEvolutionContext(toPlayerSummary(player), inputs, toThresholdMap(thresholds));
+    const sessions = buildPlayerSessionRows(inputs, toThresholdMap(thresholds));
+    const context = buildEvolutionContext(summary, sessions);
     const cacheKey = {
         kind: ReportKind.PlayerEvolution,
         subjectId: playerId,
@@ -59,11 +62,17 @@ export const generatePlayerEvolutionReport = async (
         contextHash: hashContext(context),
     };
 
-    return resolveReport(cacheKey, params.force, progress, () => writeEvolutionReport(client, context, params, progress));
+    // Session rows and alerts are recomputed on every request, cached reports included.
+    const report = await resolveReport(cacheKey, params.force, progress, () =>
+        writeEvolutionReport(client, summary, sessions, context, params, progress),
+    );
+    return { ...report, sessions };
 };
 
 const writeEvolutionReport = async (
     client: AiClient,
+    player: PlayerSummary,
+    sessions: PlayerSessionRow[],
     context: EvolutionContext,
     params: ReportParams,
     progress: ReportProgress,
@@ -74,6 +83,7 @@ const writeEvolutionReport = async (
             system: buildEvolutionSystemPrompt(params),
             user: buildEvolutionUserPrompt(context),
             temperature: PLAYER_EVOLUTION_TEMPERATURE,
+            maxTokens: PLAYER_EVOLUTION_MAX_TOKENS,
             schema: modelEvolutionSchema,
             validate: (report) => validateEvolutionAgainstContext(report, context),
             logContext: { playerId: context.player.player_id },
@@ -82,8 +92,8 @@ const writeEvolutionReport = async (
     );
 
     return {
-        player: context.player,
-        sessions: context.sessions,
+        player,
+        sessions,
         trends: context.trends,
         summary: data.summary,
         observations: data.observations,

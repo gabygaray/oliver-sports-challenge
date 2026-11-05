@@ -6,14 +6,14 @@ import {
   TableHead,
   TableRow,
   TableSortLabel,
-  Typography,
 } from '@mui/material';
 
-import { METRIC_KEYS, METRIC_LABELS, METRIC_UNITS } from '../../../utilities';
+import { METRIC_KEYS } from '../../../utilities';
 import { DASHBOARD_CONTENT } from '../content';
 import { StyledTableContainer, StyledTableProgress } from '../styled-components';
 import { IMetricsTableProps } from '../utilities';
 import { MetricCell } from './MetricCell';
+import { MetricColumnHeader } from './MetricColumnHeader';
 
 export const MetricsTable = ({
   players,
@@ -34,6 +34,7 @@ export const MetricsTable = ({
         <TableRow>
           <TableCell align="center">{DASHBOARD_CONTENT.metrics.shirtColumn}</TableCell>
           <TableCell>{DASHBOARD_CONTENT.metrics.playerColumn}</TableCell>
+          <TableCell>{DASHBOARD_CONTENT.metrics.positionColumn}</TableCell>
           {METRIC_KEYS.map(metric => (
             <TableCell
               key={metric}
@@ -45,14 +46,7 @@ export const MetricsTable = ({
                 direction={sort.orderBy === metric ? sort.order : 'desc'}
                 onClick={() => onSort(metric)}
               >
-                <span>
-                  {METRIC_LABELS[metric]}
-                  {METRIC_UNITS[metric] && (
-                    <Typography component="span" variant="caption" color="text.secondary">
-                      &nbsp;({METRIC_UNITS[metric]})
-                    </Typography>
-                  )}
-                </span>
+                <MetricColumnHeader metric={metric} />
               </TableSortLabel>
             </TableCell>
           ))}
@@ -63,12 +57,8 @@ export const MetricsTable = ({
         {players.map(player => (
           <TableRow key={player.playerId} hover>
             <TableCell align="center">{player.shirtNumber}</TableCell>
-            <TableCell>
-              {player.playerName}
-              <Typography component="span" variant="caption" color="text.secondary">
-                &nbsp;{player.position}
-              </Typography>
-            </TableCell>
+            <TableCell>{player.playerName}</TableCell>
+            <TableCell>{player.position}</TableCell>
             {METRIC_KEYS.map(metric => (
               <TableCell key={metric} align="right">
                 <MetricCell

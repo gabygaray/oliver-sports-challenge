@@ -1,7 +1,7 @@
 import { MetricKey } from '../../shared/enums';
 import { PlayerMetricsRow, SessionSummary, ThresholdMap } from '../sessions/sessions.types';
 import { exceedsLimit, LEADER_METRICS, LEADERS_PER_METRIC, REDUCED_MINUTES_RATIO } from './reports.constants';
-import { MetricLeader, ReportContext, TeamAggregates, ThresholdAlert } from './reports.types';
+import { AlertsSummary, MetricLeader, ModelPlayerRow, ReportContext, TeamAggregates, ThresholdAlert } from './reports.types';
 
 const round = (value: number, decimals = 1): number => Number(value.toFixed(decimals));
 
@@ -26,6 +26,13 @@ export const detectThresholdAlerts = (rows: PlayerMetricsRow[], thresholds: Thre
 
     return alerts.sort((a, b) => (a.level === b.level ? b.value - a.value : a.level === 'critical' ? -1 : 1));
 };
+
+/** How many alerts of each level and which metrics, so the model never has to count the list itself. */
+export const summarizeAlerts = (alerts: ThresholdAlert[]): AlertsSummary => ({
+    critical: alerts.filter((alert) => alert.level === 'critical').length,
+    warning: alerts.filter((alert) => alert.level === 'warning').length,
+    metrics: [...new Set(alerts.map((alert) => alert.metric))],
+});
 
 /** Top players per metric, skipping null values and players with reduced minutes (their totals are not comparable). */
 export const findMetricLeaders = (rows: PlayerMetricsRow[], durationMin: number): Partial<Record<MetricKey, MetricLeader[]>> => {
@@ -55,18 +62,24 @@ export const buildTeamAggregates = (rows: PlayerMetricsRow[], durationMin: numbe
         avg_total_distance_m: round(avg(rows.map((row) => row.total_distance_m)), 0),
         total_sprints: rows.reduce((sum, row) => sum + row.sprints, 0),
         avg_rpe: withRpe.length ? round(avg(withRpe.map((row) => row.rpe as number))) : null,
-        players_without_rpe: rows.filter((row) => row.rpe === null).map((row) => row.player_id),
+        players_without_rpe: rows.filter((row) => row.rpe === null).map((row) => ({ player_id: row.player_id, player_name: row.player_name })),
         players_with_reduced_minutes: rows
             .filter((row) => row.minutes_played < durationMin * REDUCED_MINUTES_RATIO)
-            .map((row) => ({ player_id: row.player_id, minutes_played: row.minutes_played })),
+            .map((row) => ({ player_id: row.player_id, player_name: row.player_name, minutes_played: row.minutes_played })),
     };
 };
 
-export const buildReportContext = (session: SessionSummary, rows: PlayerMetricsRow[], thresholds: ThresholdMap): ReportContext => ({
+/** Ids and shirt numbers differ in the dataset, so only the id travels to the model. */
+export const toModelPlayerRow = ({ shirt_number: _shirtNumber, ...row }: PlayerMetricsRow): ModelPlayerRow => row;
+
+export const onlyCritical = (alerts: ThresholdAlert[]): ThresholdAlert[] => alerts.filter((alert) => alert.level === 'critical');
+
+/** Takes the alerts already detected; the model sees only the critical ones. */
+export const buildReportContext = (session: SessionSummary, rows: PlayerMetricsRow[], alerts: ThresholdAlert[]): ReportContext => ({
     session,
     team: buildTeamAggregates(rows, session.duration_min),
-    thresholds,
-    alerts: detectThresholdAlerts(rows, thresholds),
+    alerts_summary: { ...summarizeAlerts(alerts), players_affected: new Set(alerts.map((alert) => alert.player_id)).size },
+    critical_alerts: onlyCritical(alerts),
     leaders: findMetricLeaders(rows, session.duration_min),
-    players: rows,
+    players: rows.map(toModelPlayerRow),
 });

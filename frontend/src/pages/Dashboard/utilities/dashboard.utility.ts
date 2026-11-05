@@ -1,3 +1,5 @@
+import { SyntheticEvent } from 'react';
+
 import {
   AlertLevel,
   IPlayerMetrics,
@@ -15,7 +17,7 @@ import {
   METRIC_LABELS,
 } from '../../../utilities';
 import { REDUCED_MINUTES_RATIO } from './dashboard.constants';
-import { ISessionFacts, TFactTone } from './dashboard.types';
+import { ISessionFacts, IThresholdLegendPart, TFactTone } from './dashboard.types';
 
 /** What a coach asks first about a session, computed from the rows and thresholds already on screen. */
 export const summarizeSession = (
@@ -37,20 +39,24 @@ export const summarizeSession = (
   };
 };
 
-/** "Carga: Advertencia > 600 AU · Crítico > 750 AU", or only the warning part when there is no critical limit. */
-export const formatThresholdLegend = (
+/** "> 600 AU" per level, so the legend paints each limit with the same color as the table cells. */
+export const getThresholdLegendParts = (
   metric: MetricKey,
   limits: IThresholdLimits,
-): string => {
+): IThresholdLegendPart[] => {
   const parts = [
-    `${ALERT_LEVEL_LABELS[AlertLevel.Warning]} > ${formatMetricWithUnit(metric, limits.warning)}`,
+    {
+      level: AlertLevel.Warning,
+      label: `> ${formatMetricWithUnit(metric, limits.warning)}`,
+    },
   ];
   if (limits.critical !== null) {
-    parts.push(
-      `${ALERT_LEVEL_LABELS[AlertLevel.Critical]} > ${formatMetricWithUnit(metric, limits.critical)}`,
-    );
+    parts.push({
+      level: AlertLevel.Critical,
+      label: `> ${formatMetricWithUnit(metric, limits.critical)}`,
+    });
   }
-  return `${METRIC_LABELS[metric]}: ${parts.join(', ')}`;
+  return parts;
 };
 
 /** "Santiago Molina, carga 810 AU (crítico > 750 AU)" */
@@ -63,15 +69,15 @@ export const toFactTone = (level: AlertLevel | null): TFactTone => {
   return level === AlertLevel.Warning ? 'warning' : 'neutral';
 };
 
-/** Axis labels only have room for the surname, e.g. "Santiago Molina" → "Molina". */
-export const toChartLabel = (playerName: string): string =>
-  playerName.trim().split(' ').at(-1) ?? playerName;
-
 /** Level of the alert raised for `metric` in a session row, if any. */
 export const findAlertLevel = (
   alerts: IThresholdAlert[],
   metric: MetricKey,
 ): AlertLevel | null => alerts.find(alert => alert.metric === metric)?.level ?? null;
+
+/** For controls nested in a clickable header: opening the info must not trigger the sort. */
+export const stopEventPropagation = (event: SyntheticEvent): void =>
+  event.stopPropagation();
 
 export const formatChangePct = (changePct: number | null, fallback: string): string =>
   changePct === null ? fallback : `${changePct > 0 ? '+' : ''}${changePct} %`;

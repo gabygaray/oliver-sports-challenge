@@ -8,7 +8,6 @@ import {
   IChartBar,
   IChartReferenceLine,
   IUseMetricChart,
-  toChartLabel,
 } from '../utilities';
 
 /** One bar per player for the chosen metric, colored by the alert level it reaches, plus the threshold lines. */
@@ -23,7 +22,7 @@ export const useMetricChart = (
   const bars = useMemo<IChartBar[]>(
     () =>
       players.map(player => ({
-        label: toChartLabel(player.playerName),
+        label: player.playerName,
         value: player.values[metric],
         level: getAlertLevel(player.values[metric], limits),
       })),

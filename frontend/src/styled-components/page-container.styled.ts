@@ -12,5 +12,5 @@ export const StyledPageContainer = styled(Container)(({ theme }) => ({
   paddingBottom: theme.spacing(8),
   display: 'flex',
   flexDirection: 'column',
-  gap: theme.spacing(5),
+  gap: theme.spacing(4),
 }));

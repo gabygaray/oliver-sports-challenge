@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { extractPartialSummary } from './partial-summary';
+import { extractPartialSummary } from '../../../modules/reports/partial-summary';
 
 describe('extractPartialSummary', () => {
     it('returns null before the summary key has streamed in', () => {

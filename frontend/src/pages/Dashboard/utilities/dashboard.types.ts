@@ -101,6 +101,16 @@ export interface IThresholdLegendProps {
   thresholds: TThresholdMap;
 }
 
+/** One limit of the legend: the level gives the color, the label the formatted value. */
+export interface IThresholdLegendPart {
+  level: AlertLevel;
+  label: string;
+}
+
+export interface IMetricColumnHeaderProps {
+  metric: MetricKey;
+}
+
 export interface IChartBar {
   label: string;
   value: number | null;

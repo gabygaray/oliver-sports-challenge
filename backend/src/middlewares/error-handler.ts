@@ -12,6 +12,8 @@ export const toErrorResponse = (error: unknown): ErrorResponse => {
     }
 
     if (error instanceof HttpError) {
+        // Logged here because the SSE channel answers 200 and the request logger never sees these.
+        if (error.status >= 500) logger.error({ code: error.code, status: error.status, details: error.details }, error.message);
         return { status: error.status, body: { error: { code: error.code, message: error.message, details: error.details } } };
     }
 

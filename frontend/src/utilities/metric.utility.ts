@@ -1,6 +1,6 @@
 import { AlertLevel, IThresholdLimits } from '../models';
 import { EMPTY_VALUE_LABEL, LOCALE } from './constants';
-import { METRIC_UNITS } from './metric.constants';
+import { METRIC_LABELS, METRIC_UNITS } from './metric.constants';
 import { MetricKey } from '../models';
 
 const numberFormatter = new Intl.NumberFormat(LOCALE, { maximumFractionDigits: 1 });
@@ -12,6 +12,12 @@ export const formatMetricWithUnit = (metric: MetricKey, value: number | null): s
   const unit = METRIC_UNITS[metric];
   const formatted = formatMetricValue(value);
   return value !== null && unit ? `${formatted} ${unit}` : formatted;
+};
+
+/** "Distancia total (m)", or the bare label for metrics without a unit. */
+export const formatMetricLabelWithUnit = (metric: MetricKey): string => {
+  const unit = METRIC_UNITS[metric];
+  return unit ? `${METRIC_LABELS[metric]} (${unit})` : METRIC_LABELS[metric];
 };
 
 /** Strictly above the limit, matching how the backend raises alerts: equal is not an alert. */

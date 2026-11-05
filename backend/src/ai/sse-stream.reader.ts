@@ -21,7 +21,9 @@ const consumeLine = (line: string, result: StreamedCompletion, onDelta: AiDeltaH
 
     result.model ??= chunk.model;
     if (chunk.usage) result.usage = chunk.usage;
-    const delta = chunk.choices?.[0]?.delta?.content;
+    const choice = chunk.choices?.[0];
+    if (choice?.finish_reason) result.finishReason = choice.finish_reason;
+    const delta = choice?.delta?.content;
     if (delta) {
         result.text += delta;
         onDelta(delta);

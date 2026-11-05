@@ -1,11 +1,18 @@
 import { AiError, AiInvalidResponseError } from '../../ai/ai.errors';
-import { AiClient, AiJsonResponse } from '../../ai/ai.types';
+import { AiClient, AiJsonRequest, AiJsonResponse, AiRetryTurn } from '../../ai/ai.types';
 import { logger } from '../../config/logger';
 import { HttpError } from '../../shared/http-error';
 import { toHttpError } from './ai-error.mapper';
 import { extractPartialSummary } from './partial-summary';
 import { buildRetryFeedback } from './prompts/retry-feedback.prompt';
-import { MAX_MODEL_ATTEMPTS } from './reports.constants';
+import {
+    EMPTY_ANSWER_PLACEHOLDER,
+    EXHAUSTED_VIOLATION,
+    INVALID_JSON_VIOLATION,
+    MAX_MODEL_ATTEMPTS,
+    TRUNCATED_TEXT_MIN_CHARS,
+    TRUNCATED_VIOLATION,
+} from './reports.constants';
 import { ModelRequest, ReportProgress } from './reports.types';
 
 /** Asks the model for JSON, checks shape and content, and retries once with feedback before failing with 502. */
@@ -14,38 +21,48 @@ export const requestValidatedJson = async <T>(
     request: ModelRequest<T>,
     progress: ReportProgress,
 ): Promise<{ data: T; model: string }> => {
-    let user = request.user;
-    let lastViolations: string[] = [];
+    let retry: AiRetryTurn | undefined;
+    let violations: string[] = [];
 
     for (let attempt = 1; attempt <= MAX_MODEL_ATTEMPTS; attempt++) {
         if (attempt > 1) progress.onStage?.('retrying');
-        const response = await callModel(client, request.system, user, request.temperature, progress);
+        const response = await callModel(client, { ...toAiRequest(request), retry, signal: progress.signal }, progress);
+        logger.info({ ...request.logContext, attempt, model: response.model, usage: response.usage }, 'Model answer received');
+
         const parsed = request.schema.safeParse(response.json);
+        violations = findViolations(response, parsed, request.validate);
+        if (parsed.success && !violations.length) return { data: parsed.data, model: response.model };
 
-        lastViolations = parsed.success
-            ? request.validate(parsed.data)
-            : parsed.error.issues.map((issue) => `invalid field ${issue.path.join('.') || '(root)'}: ${issue.message}`);
-
-        if (parsed.success && !lastViolations.length) return { data: parsed.data, model: response.model };
-
-        logger.warn({ attempt, ...request.logContext, violations: lastViolations }, 'Model answer rejected');
-        user = request.user + buildRetryFeedback(lastViolations);
+        logger.warn({ attempt, ...request.logContext, violations }, 'Model answer rejected');
+        retry = { previousAnswer: response.text || EMPTY_ANSWER_PLACEHOLDER, feedback: buildRetryFeedback(violations) };
     }
 
-    throw new HttpError(502, 'AI_INVALID_RESPONSE', 'The model could not produce a report consistent with the data', {
-        violations: lastViolations,
-    });
+    throw new HttpError(502, 'AI_INVALID_RESPONSE', 'The model could not produce a report consistent with the data', { violations });
 };
 
-const callModel = async (client: AiClient, system: string, user: string, temperature: number, progress: ReportProgress): Promise<AiJsonResponse> => {
-    const { onSummary, signal } = progress;
+const toAiRequest = <T>({ system, user, temperature, maxTokens }: ModelRequest<T>): AiJsonRequest => ({ system, user, temperature, maxTokens });
+
+/** Truncation, unparseable JSON, a wrong shape and content that contradicts the data, reported in the model's own terms. */
+const findViolations = <T>(
+    response: AiJsonResponse,
+    parsed: ReturnType<ModelRequest<T>['schema']['safeParse']>,
+    validate: ModelRequest<T>['validate'],
+): string[] => {
+    if (response.truncated) return [response.text.trim().length < TRUNCATED_TEXT_MIN_CHARS ? EXHAUSTED_VIOLATION : TRUNCATED_VIOLATION];
+    if (response.json === null) return [INVALID_JSON_VIOLATION];
+    if (!parsed.success) return parsed.error.issues.map((issue) => `invalid field ${issue.path.join('.') || '(root)'}: ${issue.message}`);
+    return validate(parsed.data);
+};
+
+const callModel = async (client: AiClient, request: AiJsonRequest, progress: ReportProgress): Promise<AiJsonResponse> => {
+    const { onSummary } = progress;
     try {
-        if (!onSummary) return await client.generateJson({ system, user, temperature, signal });
+        if (!onSummary) return await client.generateJson(request);
 
         // Only the summary is readable mid-stream; it is re-extracted from the growing JSON on every delta.
         let buffer = '';
         let lastSummary = '';
-        return await client.streamJson({ system, user, temperature, signal }, (chunk) => {
+        return await client.streamJson(request, (chunk) => {
             buffer += chunk;
             const summary = extractPartialSummary(buffer);
             if (summary !== null && summary !== lastSummary) {
@@ -55,7 +72,7 @@ const callModel = async (client: AiClient, system: string, user: string, tempera
         });
     } catch (error) {
         // Malformed JSON gets the same corrective retry as an answer that fails validation.
-        if (error instanceof AiInvalidResponseError) return { json: null, model: client.model, usage: null };
+        if (error instanceof AiInvalidResponseError) return { json: null, text: error.rawText, truncated: false, model: client.model, usage: null };
         if (error instanceof AiError) throw toHttpError(error);
         throw error;
     }

@@ -20,29 +20,55 @@ export interface MetricLeader {
     value: number;
 }
 
+export interface PlayerRef {
+    player_id: number;
+    player_name: string;
+}
+
+export interface ReducedMinutesPlayer extends PlayerRef {
+    minutes_played: number;
+}
+
+/** Counts over the alerts, precomputed so the model describes the picture without counting anything. */
+export interface AlertsSummary {
+    critical: number;
+    warning: number;
+    metrics: MetricKey[];
+}
+
+export interface SessionAlertsSummary extends AlertsSummary {
+    players_affected: number;
+}
+
 export interface TeamAggregates {
     players_count: number;
     players_with_full_minutes: number;
     avg_total_distance_m: number;
     total_sprints: number;
     avg_rpe: number | null;
-    players_without_rpe: number[];
-    players_with_reduced_minutes: { player_id: number; minutes_played: number }[];
+    players_without_rpe: PlayerRef[];
+    players_with_reduced_minutes: ReducedMinutesPlayer[];
 }
 
-/** Everything the model receives. Built in code so every number it can quote already exists here. */
+/** A player row as the model sees it: the shirt number is left out so it cannot be confused with the id. */
+export type ModelPlayerRow = Omit<PlayerMetricsRow, 'shirt_number'>;
+
+/** Everything the model receives. Warnings and thresholds stay out: the prompt forbids attributing them. */
 export interface ReportContext {
     session: SessionSummary;
     team: TeamAggregates;
-    thresholds: Record<string, { warning: number; critical: number | null }>;
-    alerts: ThresholdAlert[];
+    alerts_summary: SessionAlertsSummary;
+    critical_alerts: ThresholdAlert[];
     leaders: Partial<Record<MetricKey, MetricLeader[]>>;
-    players: PlayerMetricsRow[];
+    players: ModelPlayerRow[];
 }
 
+/** The figure behind a highlight is structured so the validator can check it against the player's own row. */
 export interface ReportHighlight {
     player_id: number;
     player_name: string;
+    metric: MetricKey;
+    value: number;
     reason: string;
 }
 
@@ -75,6 +101,7 @@ export interface ModelRequest<T> {
     system: string;
     user: string;
     temperature: number;
+    maxTokens: number;
     schema: ZodSchema<T>;
     /** Returns the reasons the parsed answer contradicts the data; empty means it is safe to deliver. */
     validate: (parsed: T) => string[];

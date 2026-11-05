@@ -7,12 +7,18 @@ import { findSessionMetrics, findTeamThresholds } from '../sessions/sessions.rep
 import { getSessionOrFail } from '../sessions/sessions.service';
 import { hashContext } from './context-hash';
 import { requestValidatedJson } from './model-request';
-import { buildSystemPrompt, buildUserPrompt, SESSION_REPORT_PROMPT_VERSION, SESSION_REPORT_TEMPERATURE } from './prompts/session-report.prompt';
+import {
+    buildSystemPrompt,
+    buildUserPrompt,
+    SESSION_REPORT_MAX_TOKENS,
+    SESSION_REPORT_PROMPT_VERSION,
+    SESSION_REPORT_TEMPERATURE,
+} from './prompts/session-report.prompt';
 import { resolveReport } from './report-cache.service';
-import { buildReportContext } from './report-context';
+import { buildReportContext, detectThresholdAlerts } from './report-context';
 import { validateReportAgainstContext } from './report-validator';
 import { modelReportSchema, ReportParams } from './reports.schemas';
-import { ReportContext, ReportProgress, SessionReport } from './reports.types';
+import { ReportContext, ReportProgress, SessionReport, ThresholdAlert } from './reports.types';
 
 export const generateSessionReport = async (sessionId: number, params: ReportParams, progress: ReportProgress = {}): Promise<SessionReport> => {
     const client = getAiClient();
@@ -23,7 +29,9 @@ export const generateSessionReport = async (sessionId: number, params: ReportPar
     if (!rows.length) throw new HttpError(422, 'SESSION_WITHOUT_METRICS', `Session ${sessionId} has no player metrics`);
 
     // The context is built before the cache lookup because its hash is part of the key.
-    const context = buildReportContext(toSessionSummary(session), rows.map(toPlayerMetricsRow), toThresholdMap(thresholds));
+    const metrics = rows.map(toPlayerMetricsRow);
+    const alerts = detectThresholdAlerts(metrics, toThresholdMap(thresholds));
+    const context = buildReportContext(toSessionSummary(session), metrics, alerts);
     const cacheKey = {
         kind: ReportKind.Session,
         subjectId: sessionId,
@@ -34,12 +42,15 @@ export const generateSessionReport = async (sessionId: number, params: ReportPar
         contextHash: hashContext(context),
     };
 
-    return resolveReport(cacheKey, params.force, progress, () => writeSessionReport(client, context, params, progress));
+    // Alerts are recomputed on every request, cached reports included.
+    const report = await resolveReport(cacheKey, params.force, progress, () => writeSessionReport(client, context, alerts, params, progress));
+    return { ...report, alerts };
 };
 
 const writeSessionReport = async (
     client: AiClient,
     context: ReportContext,
+    alerts: ThresholdAlert[],
     params: ReportParams,
     progress: ReportProgress,
 ): Promise<SessionReport> => {
@@ -49,6 +60,7 @@ const writeSessionReport = async (
             system: buildSystemPrompt(params),
             user: buildUserPrompt(context),
             temperature: SESSION_REPORT_TEMPERATURE,
+            maxTokens: SESSION_REPORT_MAX_TOKENS,
             schema: modelReportSchema,
             validate: (report) => validateReportAgainstContext(report, context),
             logContext: { sessionId: context.session.id },
@@ -61,7 +73,7 @@ const writeSessionReport = async (
         session: context.session,
         summary: data.summary,
         highlights: data.highlights.map((highlight) => ({ ...highlight, player_name: names.get(highlight.player_id) ?? '' })),
-        alerts: context.alerts,
+        alerts,
         meta: {
             language: params.language,
             audience: params.audience,

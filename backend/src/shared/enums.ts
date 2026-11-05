@@ -15,6 +15,13 @@ export enum MetricKey {
     WorkloadAu = 'workload_au',
 }
 
+/** Sign of a precomputed trend, spelled out so the model never reads it from the number. */
+export enum TrendDirection {
+    Up = 'up',
+    Down = 'down',
+    Flat = 'flat',
+}
+
 export enum ReportKind {
     Session = 'session',
     PlayerEvolution = 'player_evolution',

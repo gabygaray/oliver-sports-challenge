@@ -1,11 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { AiAbortedError, AiProviderError, AiRateLimitError, AiTimeoutError } from './ai.errors';
-import { OpenAiCompatibleClient } from './openai-compatible.client';
+import { AiAbortedError, AiProviderError, AiRateLimitError, AiTimeoutError } from '../../ai/ai.errors';
+import { OpenAiCompatibleClient } from '../../ai/openai-compatible.client';
 
-vi.mock('../config/logger', () => ({ logger: { info: vi.fn(), warn: vi.fn() } }));
-vi.mock('./ai.constants', () => ({ MAX_SEND_ATTEMPTS: 3, retryDelayMs: () => 1 }));
+vi.mock('../../config/logger', () => ({ logger: { info: vi.fn(), warn: vi.fn() } }));
+vi.mock('../../ai/ai.constants', () => ({ FINISH_REASON_LENGTH: 'length', MAX_SEND_ATTEMPTS: 3, retryDelayMs: () => 1 }));
 
-const client = new OpenAiCompatibleClient({ baseUrl: 'https://ai.test/v1', apiKey: 'k', model: 'm', timeoutMs: 50 });
+const config = { baseUrl: 'https://ai.test/v1', apiKey: 'k', model: 'm', timeoutMs: 50, reasoningTokensAllowance: 1500 };
+const client = new OpenAiCompatibleClient(config);
 const request = { system: 's', user: 'u' };
 
 const jsonResponse = (status: number, body: unknown, headers: Record<string, string> = {}) =>
@@ -40,10 +41,60 @@ describe('OpenAiCompatibleClient.generateJson', () => {
 
         await expect(client.generateJson(request)).resolves.toEqual({
             json: { ok: true },
+            text: '```json\n{"ok":true}\n```',
+            truncated: false,
             model: 'm-1',
-            usage: { input_tokens: 1, output_tokens: 2 },
+            usage: { input_tokens: 1, output_tokens: 2, reasoning_tokens: null },
         });
         expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('reports the reasoning tokens when the provider details them', async () => {
+        const usage = { prompt_tokens: 10, completion_tokens: 900, completion_tokens_details: { reasoning_tokens: 850 } };
+        fetchMock.mockResolvedValueOnce(jsonResponse(200, { ...completion('{"ok":true}'), usage }));
+
+        await expect(client.generateJson(request)).resolves.toMatchObject({ usage: { output_tokens: 900, reasoning_tokens: 850 } });
+    });
+
+    it('sends the caller max_tokens as is while reasoning is off', async () => {
+        fetchMock.mockResolvedValueOnce(jsonResponse(200, completion('{"ok":true}')));
+        await client.generateJson({ ...request, maxTokens: 800 });
+
+        expect(JSON.parse(fetchMock.mock.calls[0][1]?.body as string)).toMatchObject({ max_tokens: 800 });
+    });
+
+    it('adds the reasoning allowance to max_tokens while reasoning is on, so thinking cannot cut the answer', async () => {
+        const reasoning = new OpenAiCompatibleClient({ ...config, reasoningEffort: 'low' });
+        fetchMock.mockResolvedValueOnce(jsonResponse(200, completion('{"ok":true}')));
+        await reasoning.generateJson({ ...request, maxTokens: 800 });
+
+        expect(JSON.parse(fetchMock.mock.calls[0][1]?.body as string)).toMatchObject({ max_tokens: 2300, reasoning_effort: 'low' });
+    });
+
+    it('reports a completion stopped at max_tokens as truncated instead of failing on the broken JSON', async () => {
+        fetchMock.mockResolvedValueOnce(
+            jsonResponse(200, {
+                ...completion('{"summary": "cut'),
+                choices: [{ message: { content: '{"summary": "cut' }, finish_reason: 'length' }],
+            }),
+        );
+
+        await expect(client.generateJson(request)).resolves.toMatchObject({ json: null, text: '{"summary": "cut', truncated: true });
+    });
+
+    it('replays the rejected answer and the feedback as extra turns on a retry', async () => {
+        fetchMock.mockResolvedValueOnce(jsonResponse(200, completion('{"ok":2}')));
+        const retry = { previousAnswer: '{"ok":1}', feedback: 'fix it' };
+
+        await client.generateJson({ ...request, retry });
+
+        const body = JSON.parse(fetchMock.mock.calls[0][1]?.body as string);
+        expect(body.messages).toEqual([
+            { role: 'system', content: 's' },
+            { role: 'user', content: 'u' },
+            { role: 'assistant', content: '{"ok":1}' },
+            { role: 'user', content: 'fix it' },
+        ]);
     });
 
     it('retries transient 5xx answers and succeeds on the third attempt', async () => {

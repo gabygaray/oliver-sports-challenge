@@ -7,12 +7,8 @@ import {
   Typography,
 } from '@mui/material';
 
-import {
-  formatDate,
-  formatMetricValue,
-  METRIC_LABELS,
-  METRIC_UNITS,
-} from '../../../utilities';
+import { MetricKey } from '../../../models';
+import { formatDate, formatMetricValue } from '../../../utilities';
 import { DASHBOARD_CONTENT, SESSION_TYPE_LABELS } from '../content';
 import { StyledMetricValue, StyledTableContainer } from '../styled-components';
 import {
@@ -20,6 +16,7 @@ import {
   findAlertLevel,
   IEvolutionSessionsTableProps,
 } from '../utilities';
+import { MetricColumnHeader } from './MetricColumnHeader';
 
 const { evolution: content } = DASHBOARD_CONTENT;
 
@@ -29,11 +26,12 @@ export const EvolutionSessionsTable = ({ sessions }: IEvolutionSessionsTableProp
       <TableHead>
         <TableRow>
           <TableCell>{content.sessionColumn}</TableCell>
-          <TableCell align="right">{METRIC_LABELS.minutes_played}</TableCell>
+          <TableCell align="right">
+            <MetricColumnHeader metric={MetricKey.MinutesPlayed} />
+          </TableCell>
           {EVOLUTION_METRICS.map(metric => (
             <TableCell key={metric} align="right">
-              {METRIC_LABELS[metric]}
-              {METRIC_UNITS[metric] && ` (${METRIC_UNITS[metric]})`}
+              <MetricColumnHeader metric={metric} />
             </TableCell>
           ))}
         </TableRow>
