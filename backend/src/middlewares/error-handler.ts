@@ -4,8 +4,15 @@ import { logger } from '../config/logger';
 import { HttpError } from '../shared/http-error';
 import { ErrorResponse } from '../shared/http.types';
 
+/** express.json() rejects a malformed body with a SyntaxError tagged this way. */
+const isBodyParseError = (error: unknown): boolean => (error as { type?: string } | null)?.type === 'entity.parse.failed';
+
 /** Single place that decides how any thrown value looks on the wire; the SSE channel reuses it. */
 export const toErrorResponse = (error: unknown): ErrorResponse => {
+    if (isBodyParseError(error)) {
+        return { status: 400, body: { error: { code: 'VALIDATION_ERROR', message: 'Malformed JSON body' } } };
+    }
+
     if (error instanceof ZodError) {
         const details = error.issues.map((issue) => ({ path: issue.path.join('.'), message: issue.message }));
         return { status: 400, body: { error: { code: 'VALIDATION_ERROR', message: 'Invalid request', details } } };

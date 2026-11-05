@@ -2,6 +2,25 @@
 
 Backend releases, by the `version` in `package.json`. Prompt wording is versioned on its own: the detail of each prompt version lives in `src/modules/reports/prompts/CHANGELOG.md` (session report) and `src/modules/players/prompts/CHANGELOG.md` (player evolution).
 
+## 0.3.0 - 2026-11-05
+
+### Added
+- `stream_options.include_usage` on streamed completions, so the usage (reasoning tokens included) is logged on the SSE path too.
+- Rejected model answers are logged in full at debug level, next to the warn line with the violations.
+- Tests: every context field is named in its prompt; prompt snapshots cover temperature and `max_tokens`.
+
+### Changed
+- Context sent to the model: `team.players_with_full_minutes` (session) and `comparable_sessions` (evolution) leave the context.
+- `trends` in `POST /players/:id/evolution-report` covers the five output metrics; RPE and workload are no longer trended. Each trend carries `basis` (`per_90_min` for totals, `absolute` for max speed), with `first`/`last` projected to 90 minutes where it applies, plus `reference_minutes`, `first_session_type`, `last_session_type`, `first_minutes` and `last_minutes`.
+- `TrendBasis` enum.
+- `highlights` in the session report may hold fewer than two items when fewer than two players are comparable, down to an empty list.
+- Session report prompt 1.6.0 and player evolution prompt 1.5.0: see the prompt changelogs.
+
+### Fixed
+- A stream the provider cuts with an error body (Gemini answers 200, streams part of the text and ends with a 503 body instead of `[DONE]`) is now an `AiProviderError` retried with backoff, instead of being parsed as the model's broken JSON and fed back as a violation. The transient retry covers the whole stream read, and the stream consumer receives the text so far, so a retried stream starts the partial summary over.
+- A malformed JSON body answers 400 `VALIDATION_ERROR` instead of 500.
+- A non-numeric id or `player_id` reads "must be a number" instead of "received nan".
+
 ## 0.2.0 - 2026-11-05
 
 ### Added
@@ -12,6 +31,7 @@ Backend releases, by the `version` in `package.json`. Prompt wording is versione
 - `max_tokens` on every model call and token usage logged per call.
 - `first_session_date` and `last_session_date` on each item of `trends` in `POST /players/:id/evolution-report`: the two comparable sessions the change spans.
 - `alerts_summary` in the context sent to the model (alerts per level, players or sessions affected, metrics), so the model never counts alerts.
+- JSON-keys check in the validator: a metric key such as `workload_au` or any snake_case key of the context such as `change_pct` written in the prose is rejected like a foreign figure (seen in an English summary, "across workload_au, total_distance_m", and in a Spanish observation, "(change_pct: 0)").
 - Names-in-context check in the validator: a run of capitalised words that matches no name in the data is rejected like a foreign figure.
 - Truncated completions (`finish_reason: length`) are detected in both the JSON and the streaming paths and fed back to the model as "too long" instead of "invalid JSON".
 - Tests: highlight attribution, highlights outside the leaders, trend direction, retry turns of the client, player and rows sent without shirt number, foreign names, alert summaries, truncated output, metric restricted by the schema, rendered prompts (snapshot per language and audience), critical-only alerts in both model contexts.

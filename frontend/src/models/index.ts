@@ -1,4 +1,5 @@
 export * from './metric.enums';
+export * from './player.enums';
 export * from './player.model';
 export * from './report.enums';
 export * from './report.model';

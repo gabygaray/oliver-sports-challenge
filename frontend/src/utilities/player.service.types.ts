@@ -1,4 +1,4 @@
-import { MetricKey } from '../models';
+import { MetricKey, TrendBasis } from '../models';
 import {
   IReportMetaApiResponse,
   IThresholdAlertApiResponse,
@@ -25,6 +25,7 @@ export interface IPlayerSessionRowApiResponse {
 
 export interface IMetricTrendApiResponse {
   metric: MetricKey;
+  basis: TrendBasis;
   first: number | null;
   last: number | null;
   change_pct: number | null;

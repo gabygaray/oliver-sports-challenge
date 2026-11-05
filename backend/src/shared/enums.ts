@@ -22,6 +22,12 @@ export enum TrendDirection {
     Flat = 'flat',
 }
 
+/** How a trend is measured: totals are projected to 90 minutes so sessions of different length compare; peaks stay as they are. */
+export enum TrendBasis {
+    Per90Min = 'per_90_min',
+    Absolute = 'absolute',
+}
+
 export enum ReportKind {
     Session = 'session',
     PlayerEvolution = 'player_evolution',

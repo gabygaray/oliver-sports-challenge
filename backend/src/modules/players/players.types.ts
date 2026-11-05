@@ -1,4 +1,4 @@
-import { MetricKey, TrendDirection } from '../../shared/enums';
+import { MetricKey, SessionType, TrendBasis, TrendDirection } from '../../shared/enums';
 import { AlertsSummary, ReportMeta, ThresholdAlert } from '../reports/reports.types';
 import { PlayerMetricsRow, SessionSummary } from '../sessions/sessions.types';
 
@@ -34,13 +34,20 @@ export interface EvolutionAlertsSummary extends AlertsSummary {
     sessions_affected: number;
 }
 
-/** The two comparable sessions a trend compares, with their dates so the model never has to work out which they were. */
+/** The two comparable sessions a trend compares; totals are projected to 90 minutes so a longer session does not read as progress. */
 export interface MetricTrend {
     metric: MetricKey;
+    basis: TrendBasis;
+    /** Minutes the totals are projected to; null for absolute trends. Present so the figure the model quotes exists in the context. */
+    reference_minutes: number | null;
     first: number | null;
     first_session_date: string | null;
+    first_session_type: SessionType | null;
+    first_minutes: number | null;
     last: number | null;
     last_session_date: string | null;
+    last_session_type: SessionType | null;
+    last_minutes: number | null;
     /** Null when fewer than two comparable sessions have the metric. */
     change_pct: number | null;
     /** Spelled out so the model describes the trend without reading the sign of change_pct. */
@@ -51,7 +58,6 @@ export interface MetricTrend {
 export interface EvolutionContext {
     player: ModelPlayerSummary;
     sessions: ModelSessionRow[];
-    comparable_sessions: number;
     /** Dates, not ids: the model quotes sessions by date. */
     sessions_without_rpe: string[];
     alerts_summary: EvolutionAlertsSummary;

@@ -1,9 +1,9 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 import { logger } from '../config/logger';
 import { AiAbortedError, AiAuthError, AiInvalidResponseError, AiProviderError, AiRateLimitError, AiTimeoutError } from './ai.errors';
-import { AiClient, AiDeltaHandler, AiJsonRequest, AiJsonResponse, AiUsage, OpenAiCompatibleConfig } from './ai.types';
+import { AiClient, AiJsonRequest, AiJsonResponse, AiStreamHandler, AiUsage, OpenAiCompatibleConfig } from './ai.types';
 import { FINISH_REASON_LENGTH, MAX_SEND_ATTEMPTS, retryDelayMs } from './ai.constants';
-import { ChatCompletionResponse, ChatMessage } from './openai-compatible.types';
+import { ChatCompletionResponse, ChatMessage, StreamedCompletion } from './openai-compatible.types';
 import { readCompletionStream } from './sse-stream.reader';
 
 /** Chat completions client for any OpenAI-compatible API (Gemini, Groq, OpenRouter, Ollama). */
@@ -16,19 +16,28 @@ export class OpenAiCompatibleClient implements AiClient {
 
     async generateJson(request: AiJsonRequest): Promise<AiJsonResponse> {
         return this.withTimeout(request.signal, async (signal) => {
-            const response = await this.send(this.buildBody(request, false), signal);
+            const response = await this.withTransientRetry(() => this.send(this.buildBody(request, false), signal), signal);
             const completion = (await response.json()) as ChatCompletionResponse;
             const choice = completion.choices?.[0];
             return this.toJsonResponse(choice?.message?.content, completion.model, completion.usage, choice?.finish_reason);
         });
     }
 
-    async streamJson(request: AiJsonRequest, onDelta: AiDeltaHandler): Promise<AiJsonResponse> {
+    async streamJson(request: AiJsonRequest, onText: AiStreamHandler): Promise<AiJsonResponse> {
         return this.withTimeout(request.signal, async (signal) => {
-            const response = await this.send(this.buildBody(request, true), signal);
-            const streamed = await readCompletionStream(response, onDelta);
+            const streamed = await this.withTransientRetry(() => this.readStream(this.buildBody(request, true), signal, onText), signal);
             return this.toJsonResponse(streamed.text, streamed.model, streamed.usage, streamed.finishReason);
         });
+    }
+
+    /** A stream that ends without `[DONE]` or a finish reason was cut by the provider; its error body, if any, is in the trailer. */
+    private async readStream(body: unknown, signal: AbortSignal, onText: AiStreamHandler): Promise<StreamedCompletion> {
+        const streamed = await readCompletionStream(await this.send(body, signal), onText);
+        if (!streamed.done && !streamed.finishReason) {
+            logger.warn({ trailer: streamed.trailer.slice(0, 300) }, 'AI stream cut by the provider');
+            throw new AiProviderError(trailerStatus(streamed.trailer), streamed.trailer.slice(0, 300) || 'stream ended early');
+        }
+        return streamed;
     }
 
     private buildBody(request: AiJsonRequest, stream: boolean): unknown {
@@ -39,6 +48,8 @@ export class OpenAiCompatibleClient implements AiClient {
             reasoning_effort: this.config.reasoningEffort,
             response_format: { type: 'json_object' },
             stream,
+            // Without it most providers, Gemini included, leave usage out of the stream.
+            stream_options: stream ? { include_usage: true } : undefined,
             messages: this.buildMessages(request),
         };
     }
@@ -97,23 +108,27 @@ export class OpenAiCompatibleClient implements AiClient {
         }
     }
 
-    /** Sends the request; transient 5xx answers are retried with growing pauses, anything else surfaces immediately. */
-    private async send(body: unknown, signal: AbortSignal, attempt = 1): Promise<Response> {
+    /** Transient 5xx failures, before or during a stream, are retried with growing pauses; anything else surfaces immediately. */
+    private async withTransientRetry<T>(run: () => Promise<T>, signal: AbortSignal, attempt = 1): Promise<T> {
         try {
-            const response = await fetch(`${this.config.baseUrl.replace(/\/$/, '')}/chat/completions`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${this.config.apiKey}` },
-                body: JSON.stringify(body),
-                signal,
-            });
-            if (!response.ok) throw await this.toProviderError(response);
-            return response;
+            return await run();
         } catch (error) {
             const transient = error instanceof AiProviderError && error.retryable;
             if (!transient || attempt >= MAX_SEND_ATTEMPTS) throw error;
             await sleep(retryDelayMs(attempt), undefined, { signal });
-            return this.send(body, signal, attempt + 1);
+            return this.withTransientRetry(run, signal, attempt + 1);
         }
+    }
+
+    private async send(body: unknown, signal: AbortSignal): Promise<Response> {
+        const response = await fetch(`${this.config.baseUrl.replace(/\/$/, '')}/chat/completions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${this.config.apiKey}` },
+            body: JSON.stringify(body),
+            signal,
+        });
+        if (!response.ok) throw await this.toProviderError(response);
+        return response;
     }
 
     private async toProviderError(response: Response): Promise<Error> {
@@ -134,6 +149,18 @@ const toUsage = (usage: ChatCompletionResponse['usage'] & object): AiUsage => ({
     output_tokens: usage.completion_tokens ?? 0,
     reasoning_tokens: usage.completion_tokens_details?.reasoning_tokens ?? null,
 });
+
+/** HTTP status carried by an error body sent mid-stream (Gemini sends `[{ "error": { "code": 503 } }]`); 502 when there is none. */
+const trailerStatus = (trailer: string): number => {
+    try {
+        const parsed: unknown = JSON.parse(trailer);
+        const first = Array.isArray(parsed) ? parsed[0] : parsed;
+        const code = (first as { error?: { code?: unknown } })?.error?.code;
+        return typeof code === 'number' && code >= 400 ? code : 502;
+    } catch {
+        return 502;
+    }
+};
 
 /** Some models wrap JSON in markdown fences even in JSON mode; strip them before parsing. */
 const parseJson = (text: string): unknown => {

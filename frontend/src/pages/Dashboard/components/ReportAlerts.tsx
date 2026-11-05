@@ -1,10 +1,11 @@
-import { Chip, Typography } from '@mui/material';
+import { Stack, Typography } from '@mui/material';
 
-import { ALERT_LEVEL_COLOR } from '../../../utilities';
+import { AlertLevel } from '../../../models';
 import { DASHBOARD_CONTENT } from '../content';
-import { StyledAlertChips } from '../styled-components';
-import { formatAlertChip, IReportAlertsProps } from '../utilities';
+import { groupAlertsByLevel, IReportAlertsProps } from '../utilities';
+import { ReportAlertGroup } from './ReportAlertGroup';
 
+/** Critical alerts first, then warnings, each group stacked so the column scans top to bottom. */
 export const ReportAlerts = ({ alerts }: IReportAlertsProps) => {
   if (!alerts.length) {
     return (
@@ -14,17 +15,15 @@ export const ReportAlerts = ({ alerts }: IReportAlertsProps) => {
     );
   }
 
+  const groups = groupAlertsByLevel(alerts);
   return (
-    <StyledAlertChips>
-      {alerts.map(alert => (
-        <Chip
-          key={`${alert.playerId}-${alert.metric}`}
-          size="small"
-          color={ALERT_LEVEL_COLOR[alert.level]}
-          variant="outlined"
-          label={formatAlertChip(alert)}
-        />
-      ))}
-    </StyledAlertChips>
+    <Stack spacing={2}>
+      {[AlertLevel.Critical, AlertLevel.Warning].map(
+        level =>
+          groups[level].length > 0 && (
+            <ReportAlertGroup key={level} level={level} alerts={groups[level]} />
+          ),
+      )}
+    </Stack>
   );
 };

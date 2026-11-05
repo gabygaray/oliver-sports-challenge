@@ -14,7 +14,8 @@ export interface AiJsonRequest {
     signal?: AbortSignal;
 }
 
-export type AiDeltaHandler = (chunk: string) => void;
+/** Receives the whole text streamed so far, so a retried stream starts the consumer over. */
+export type AiStreamHandler = (text: string) => void;
 
 export interface AiUsage {
     input_tokens: number;
@@ -38,8 +39,8 @@ export interface AiJsonResponse {
 export interface AiClient {
     readonly model: string;
     generateJson(request: AiJsonRequest): Promise<AiJsonResponse>;
-    /** Same result as generateJson, but `onDelta` receives the raw text as the model produces it. */
-    streamJson(request: AiJsonRequest, onDelta: AiDeltaHandler): Promise<AiJsonResponse>;
+    /** Same result as generateJson, but `onText` receives the raw text as the model produces it. */
+    streamJson(request: AiJsonRequest, onText: AiStreamHandler): Promise<AiJsonResponse>;
 }
 
 export type ReasoningEffort = 'none' | 'low' | 'medium' | 'high';

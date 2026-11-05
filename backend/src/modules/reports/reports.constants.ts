@@ -10,8 +10,7 @@ export const INVALID_JSON_VIOLATION = 'the answer was not a valid JSON object';
 export const TRUNCATED_VIOLATION = 'the answer was cut off by the output limit: write a shorter summary and shorter sentences';
 
 /** Violation reported when the limit ran out before any answer was written. */
-export const EXHAUSTED_VIOLATION =
-    'the output limit ran out before the answer was written: reply with the JSON object directly, without reasoning first';
+export const EXHAUSTED_VIOLATION = 'the output limit ran out before the answer was written: reply with the JSON object only';
 
 /** Below this length a truncated completion counts as never started. */
 export const TRUNCATED_TEXT_MIN_CHARS = 50;
@@ -22,6 +21,9 @@ export const EMPTY_ANSWER_PLACEHOLDER = '(empty answer)';
 /** Upper bounds for the prose the model returns; longer text is a sign it ignored the format. */
 export const SUMMARY_MAX_CHARS = 1200;
 export const SENTENCE_MAX_CHARS = 300;
+
+/** Highlights asked for when the leaders allow it; fewer comparable players lower the requirement. */
+export const HIGHLIGHTS_TARGET = 2;
 
 /** Metrics that can justify a highlight; load metrics (RPE, workload) are alerts, not merits. A tuple so Zod and the prompt can list it. */
 export const LEADER_METRICS = [

@@ -12,6 +12,14 @@ export const CHART_HEIGHT = 380;
 export const CHART_AXIS_LABEL_STYLE = { angle: -35, textAnchor: 'end' } as const;
 export const CHART_MARGIN = { left: 88, bottom: 112 };
 
+/** Room above the highest bar or threshold line so neither touches the top of the chart. */
+export const CHART_HEADROOM = 1.1;
+
+/** Placeholder rows while a report loads, sized like a typical result. */
+export const SKELETON_ALERT_ROWS = 5;
+export const SKELETON_TREND_CHIPS = 5;
+export const SKELETON_SESSION_ROWS = 3;
+
 /** No column means the API default order: by shirt number. */
 export const INITIAL_SORT: ISortState = { orderBy: null, order: 'desc' };
 

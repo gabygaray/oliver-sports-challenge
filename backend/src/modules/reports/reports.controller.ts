@@ -11,10 +11,7 @@ export const createSessionReport = async (req: Request, res: Response): Promise<
     res.json(await generateSessionReport(id, params));
 };
 
-/**
- * Same report over Server-Sent Events: `status` for progress, `summary` with the text so far,
- * then one final `report` or `error`. Invalid params still fail with a regular 400 before the stream opens.
- */
+/** Same report over SSE: `status` events, `summary` with the text so far, then one final `report` or `error`. */
 export const streamSessionReport = async (req: Request, res: Response): Promise<void> => {
     const { id } = sessionIdParamsSchema.parse(req.params);
     const params = reportParamsSchema.parse(req.query);

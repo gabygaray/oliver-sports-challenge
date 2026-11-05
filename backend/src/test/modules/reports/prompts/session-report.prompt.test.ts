@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { ReportParams } from '../../../../modules/reports/reports.schemas';
-import { buildSystemPrompt, SESSION_REPORT_PROMPT_VERSION } from '../../../../modules/reports/prompts/session-report.prompt';
+import { buildFixtureContext } from '../../../fixtures/report.fixtures';
+import {
+    buildSystemPrompt,
+    SESSION_REPORT_MAX_TOKENS,
+    SESSION_REPORT_PROMPT_VERSION,
+    SESSION_REPORT_TEMPERATURE,
+} from '../../../../modules/reports/prompts/session-report.prompt';
 
 const VARIANTS: ReportParams[] = [
     { language: 'es', audience: 'coach', force: false },
@@ -9,10 +15,21 @@ const VARIANTS: ReportParams[] = [
     { language: 'en', audience: 'player', force: false },
 ];
 
-/** The snapshot is the rendered prompt; a wording change fails until the snapshot, the version and the CHANGELOG are updated together. */
+/** The snapshot is the rendered prompt plus its sampling parameters; any change fails until snapshot, version and CHANGELOG are updated together. */
 describe('session report prompt', () => {
     it.each(VARIANTS)('renders version $language/$audience as snapshotted', (params) => {
-        expect({ version: SESSION_REPORT_PROMPT_VERSION, prompt: buildSystemPrompt(params) }).toMatchSnapshot();
+        expect({
+            version: SESSION_REPORT_PROMPT_VERSION,
+            temperature: SESSION_REPORT_TEMPERATURE,
+            maxTokens: SESSION_REPORT_MAX_TOKENS,
+            prompt: buildSystemPrompt(params),
+        }).toMatchSnapshot();
+    });
+
+    it('describes every field the model receives, at the top level and inside "team"', () => {
+        const prompt = buildSystemPrompt(VARIANTS[0]);
+        const context = buildFixtureContext();
+        for (const key of [...Object.keys(context), ...Object.keys(context.team)]) expect(prompt).toContain(`"${key}"`);
     });
 
     it('addresses the players with "vos" only in Spanish for the player audience', () => {

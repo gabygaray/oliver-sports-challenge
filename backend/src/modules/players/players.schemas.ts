@@ -1,8 +1,9 @@
 import { z } from 'zod';
 import { SENTENCE_MAX_CHARS, SUMMARY_MAX_CHARS } from '../reports/reports.constants';
+import { positiveIntParam } from '../sessions/sessions.schemas';
 
 export const playerIdParamsSchema = z.object({
-    id: z.coerce.number().int().positive(),
+    id: positiveIntParam,
 });
 
 /** The model writes prose only; the per-session rows and trends come from code. */

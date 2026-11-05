@@ -140,23 +140,60 @@ describe('OpenAiCompatibleClient.generateJson', () => {
 });
 
 describe('OpenAiCompatibleClient.streamJson', () => {
-    it('forwards every delta and returns the joined JSON', async () => {
+    it('asks the provider to include usage in the stream and leaves the flag out of plain requests', async () => {
+        fetchMock.mockResolvedValueOnce(
+            new Response(sseBody(['data: {"choices":[{"delta":{"content":"{\\"ok\\":true}"}}]}\n\n', 'data: [DONE]\n\n'])),
+        );
+        await client.streamJson(request, () => {});
+        expect(JSON.parse(fetchMock.mock.calls[0][1]?.body as string)).toMatchObject({ stream: true, stream_options: { include_usage: true } });
+
+        fetchMock.mockResolvedValueOnce(jsonResponse(200, completion('{"ok":true}')));
+        await client.generateJson(request);
+        expect(JSON.parse(fetchMock.mock.calls[1][1]?.body as string)).not.toHaveProperty('stream_options');
+    });
+
+    it('forwards the text so far on every delta and returns the joined JSON', async () => {
         const chunk = (content: string) => `data: ${JSON.stringify({ model: 'm-1', choices: [{ delta: { content } }] })}\n\n`;
         fetchMock.mockResolvedValueOnce(
             new Response(sseBody([chunk('{"sum'), chunk('mary": "ho'), 'data: not-json\n\n', chunk('la"}'), 'data: [DONE]\n\n']), { status: 200 }),
         );
-        const deltas: string[] = [];
+        const texts: string[] = [];
 
-        const result = await client.streamJson(request, (delta) => deltas.push(delta));
+        const result = await client.streamJson(request, (text) => texts.push(text));
 
-        expect(deltas).toEqual(['{"sum', 'mary": "ho', 'la"}']);
+        expect(texts).toEqual(['{"sum', '{"summary": "ho', '{"summary": "hola"}']);
         expect(result).toMatchObject({ json: { summary: 'hola' }, model: 'm-1' });
     });
 
     it('handles a line split across two network chunks', async () => {
         const line = `data: ${JSON.stringify({ choices: [{ delta: { content: '{"a":1}' } }] })}\n`;
-        fetchMock.mockResolvedValueOnce(new Response(sseBody([line.slice(0, 10), line.slice(10)]), { status: 200 }));
+        fetchMock.mockResolvedValueOnce(new Response(sseBody([line.slice(0, 10), line.slice(10), 'data: [DONE]\n']), { status: 200 }));
 
         await expect(client.streamJson(request, () => undefined)).resolves.toMatchObject({ json: { a: 1 } });
+    });
+
+    it('retries a stream the provider cut with an error body, and the consumer starts over', async () => {
+        const chunk = (content: string) => `data: ${JSON.stringify({ choices: [{ delta: { content } }] })}\n\n`;
+        const cut = sseBody([chunk('{"summary": "The squad'), '[{"error": {"code": 503, "message": "high demand"}}]\n']);
+        const whole = sseBody([chunk('{"summary": "ok"}'), 'data: [DONE]\n\n']);
+        fetchMock.mockResolvedValueOnce(new Response(cut, { status: 200 })).mockResolvedValueOnce(new Response(whole, { status: 200 }));
+        const texts: string[] = [];
+
+        await expect(client.streamJson(request, (text) => texts.push(text))).resolves.toMatchObject({ json: { summary: 'ok' } });
+        expect(texts).toEqual(['{"summary": "The squad', '{"summary": "ok"}']);
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
+    it('gives up on a stream cut on every attempt with the provider status, never blaming the model', async () => {
+        const cut = () =>
+            new Response(sseBody(['data: {"choices":[{"delta":{"content":"{"}}]}\n\n', '[{"error": {"code": 503}}]\n']), { status: 200 });
+        fetchMock.mockResolvedValueOnce(cut()).mockResolvedValueOnce(cut()).mockResolvedValueOnce(cut());
+
+        await expect(client.streamJson(request, () => undefined)).rejects.toMatchObject({
+            constructor: AiProviderError,
+            status: 503,
+            retryable: true,
+        });
+        expect(fetchMock).toHaveBeenCalledTimes(3);
     });
 });

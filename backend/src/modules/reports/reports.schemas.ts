@@ -23,7 +23,6 @@ export const modelReportSchema = z.object({
                 reason: z.string().trim().min(1).max(SENTENCE_MAX_CHARS),
             }),
         )
-        .min(2)
         .max(3),
 });
 

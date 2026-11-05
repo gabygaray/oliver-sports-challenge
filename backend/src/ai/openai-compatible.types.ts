@@ -27,4 +27,8 @@ export interface StreamedCompletion {
     model?: string;
     finishReason?: string | null;
     usage?: ChatCompletionUsage | null;
+    /** True once the provider sent `[DONE]`. */
+    done: boolean;
+    /** Lines that are not SSE data, such as an error body sent after the stream broke. */
+    trailer: string;
 }

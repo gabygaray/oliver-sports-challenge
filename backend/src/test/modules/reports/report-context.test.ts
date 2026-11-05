@@ -67,7 +67,6 @@ describe('buildTeamAggregates', () => {
 
     it('flags players below 75% of the session minutes', () => {
         expect(team.players_with_reduced_minutes).toEqual([{ player_id: 16, player_name: 'Franco Medina', minutes_played: 28 }]);
-        expect(team.players_with_full_minutes).toBe(6);
     });
 
     it('rounds the team averages', () => {

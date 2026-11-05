@@ -30,7 +30,7 @@ import {
 } from '../utilities';
 
 export const MetricChart = ({ players, thresholds }: IMetricChartProps) => {
-  const { metric, setMetric, bars, barColors, referenceLines } = useMetricChart(
+  const { metric, setMetric, bars, barColors, referenceLines, yMax } = useMetricChart(
     players,
     thresholds,
   );
@@ -81,7 +81,11 @@ export const MetricChart = ({ players, thresholds }: IMetricChartProps) => {
           },
         ]}
         yAxis={[
-          { label: formatMetricLabelWithUnit(metric), valueFormatter: formatMetricValue },
+          {
+            label: formatMetricLabelWithUnit(metric),
+            valueFormatter: formatMetricValue,
+            max: yMax,
+          },
         ]}
         series={[
           {

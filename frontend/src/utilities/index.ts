@@ -14,4 +14,5 @@ export * from './report.service.types';
 export * from './reportStream.utility';
 export * from './section.types';
 export * from './session.service.types';
+export * from './skeletonLines.types';
 export * from './text.utility';

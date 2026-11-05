@@ -10,7 +10,6 @@ import {
   TThresholdMap,
 } from '../../../models';
 import {
-  ALERT_LEVEL_LABELS,
   formatMetricWithUnit,
   getAlertLevel,
   METRIC_KEYS,
@@ -59,9 +58,20 @@ export const getThresholdLegendParts = (
   return parts;
 };
 
-/** "Santiago Molina, carga 810 AU (crítico > 750 AU)" */
+/** Lowercases a label for mid-sentence use; an acronym such as RPE keeps its capitals. */
+const inSentence = (label: string): string =>
+  label === label.toUpperCase() ? label : label.toLowerCase();
+
+/** "Santiago Molina, carga 810 AU (> 750 AU)"; the level is the group the chip sits in. */
 export const formatAlertChip = (alert: IThresholdAlert): string =>
-  `${alert.playerName}, ${METRIC_LABELS[alert.metric].toLowerCase()} ${formatMetricWithUnit(alert.metric, alert.value)} (${ALERT_LEVEL_LABELS[alert.level].toLowerCase()} > ${formatMetricWithUnit(alert.metric, alert.limit)})`;
+  `${alert.playerName}, ${inSentence(METRIC_LABELS[alert.metric])} ${formatMetricWithUnit(alert.metric, alert.value)} (> ${formatMetricWithUnit(alert.metric, alert.limit)})`;
+
+export const groupAlertsByLevel = (
+  alerts: IThresholdAlert[],
+): Record<AlertLevel, IThresholdAlert[]> => ({
+  [AlertLevel.Critical]: alerts.filter(alert => alert.level === AlertLevel.Critical),
+  [AlertLevel.Warning]: alerts.filter(alert => alert.level === AlertLevel.Warning),
+});
 
 /** Tone of a header fact: alert levels keep their color, counts without a level stay neutral. */
 export const toFactTone = (level: AlertLevel | null): TFactTone => {
@@ -78,6 +88,10 @@ export const findAlertLevel = (
 /** For controls nested in a clickable header: opening the info must not trigger the sort. */
 export const stopEventPropagation = (event: SyntheticEvent): void =>
   event.stopPropagation();
+
+export const analysisTabId = (tab: string): string => `analysis-tab-${tab}`;
+
+export const analysisPanelId = (tab: string): string => `analysis-panel-${tab}`;
 
 export const formatChangePct = (changePct: number | null, fallback: string): string =>
   changePct === null ? fallback : `${changePct > 0 ? '+' : ''}${changePct} %`;

@@ -1,5 +1,8 @@
-import { AiDeltaHandler } from './ai.types';
+import { AiStreamHandler } from './ai.types';
 import { ChatCompletionChunk, StreamedCompletion } from './openai-compatible.types';
+
+const DATA_PREFIX = 'data:';
+const DONE_MARKER = '[DONE]';
 
 /** A malformed chunk is skipped rather than failing the whole stream. */
 const parseChunk = (data: string): ChatCompletionChunk | null => {
@@ -10,11 +13,18 @@ const parseChunk = (data: string): ChatCompletionChunk | null => {
     }
 };
 
-/** Parses one `data:` line of the event stream into the running result; anything else is ignored. */
-const consumeLine = (line: string, result: StreamedCompletion, onDelta: AiDeltaHandler): void => {
-    if (!line.startsWith('data:')) return;
-    const data = line.slice(5).trim();
-    if (!data || data === '[DONE]') return;
+/** Parses one line of the event stream into the running result; non-SSE lines are kept as the trailer. */
+const consumeLine = (line: string, result: StreamedCompletion, onText: AiStreamHandler): void => {
+    if (!line) return;
+    if (!line.startsWith(DATA_PREFIX)) {
+        result.trailer += line;
+        return;
+    }
+    const data = line.slice(DATA_PREFIX.length).trim();
+    if (data === DONE_MARKER) {
+        result.done = true;
+        return;
+    }
 
     const chunk = parseChunk(data);
     if (!chunk) return;
@@ -26,16 +36,13 @@ const consumeLine = (line: string, result: StreamedCompletion, onDelta: AiDeltaH
     const delta = choice?.delta?.content;
     if (delta) {
         result.text += delta;
-        onDelta(delta);
+        onText(result.text);
     }
 };
 
-/**
- * Consumes the single streamed HTTP response of a chat completion: the body is iterated as it
- * arrives, split into `data:` lines, and every content delta is forwarded before the joined text is returned.
- */
-export const readCompletionStream = async (response: Response, onDelta: AiDeltaHandler): Promise<StreamedCompletion> => {
-    const result: StreamedCompletion = { text: '' };
+/** Reads the streamed completion line by line and forwards the text so far on every content delta. */
+export const readCompletionStream = async (response: Response, onText: AiStreamHandler): Promise<StreamedCompletion> => {
+    const result: StreamedCompletion = { text: '', done: false, trailer: '' };
     if (!response.body) return result;
 
     // Chunks do not align with lines, so the trailing partial line waits for the next chunk.
@@ -43,9 +50,9 @@ export const readCompletionStream = async (response: Response, onDelta: AiDeltaH
     for await (const chunk of response.body.pipeThrough(new TextDecoderStream())) {
         const lines = (pending + chunk).split('\n');
         pending = lines.pop() ?? '';
-        for (const line of lines) consumeLine(line.trim(), result, onDelta);
+        for (const line of lines) consumeLine(line.trim(), result, onText);
     }
-    consumeLine(pending.trim(), result, onDelta);
+    consumeLine(pending.trim(), result, onText);
 
     return result;
 };

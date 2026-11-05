@@ -1,14 +1,12 @@
 import { FeedbackState, PageContainer } from '../../components';
 import {
-  EvolutionPanel,
+  AnalysisTabs,
   MetricChart,
   MetricsTableSection,
-  ReportPanel,
   SessionHeader,
 } from './components';
 import { DASHBOARD_CONTENT } from './content';
 import { useSessionMetrics, useSessionSelection } from './hooks';
-import { StyledAnalysisGrid } from './styled-components';
 
 const DashboardPage = () => {
   const selection = useSessionSelection();
@@ -35,21 +33,16 @@ const DashboardPage = () => {
         <FeedbackState variant="empty" message={DASHBOARD_CONTENT.emptySessions} />
       )}
 
-      {/* Data of the selected session, then the AI report beside the chart */}
+      {/* Data of the selected session, then the two AI analyses in tabs */}
       {selectedSessionId !== null && (
         <>
           <MetricsTableSection metrics={metrics} />
-          <StyledAnalysisGrid>
-            {hasPlayers && (
-              <MetricChart players={metrics.players} thresholds={metrics.thresholds} />
-            )}
-            <ReportPanel sessionId={selectedSessionId} />
-          </StyledAnalysisGrid>
+          {hasPlayers && (
+            <MetricChart players={metrics.players} thresholds={metrics.thresholds} />
+          )}
+          <AnalysisTabs sessionId={selectedSessionId} />
         </>
       )}
-
-      {/* Player evolution across sessions; independent of the selected session */}
-      {!isLoading && !isError && sessions.length > 0 && <EvolutionPanel />}
     </PageContainer>
   );
 };

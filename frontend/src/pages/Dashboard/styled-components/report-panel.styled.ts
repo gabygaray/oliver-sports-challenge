@@ -31,10 +31,37 @@ export const StyledHighlightList = styled('ul')(({ theme }) => ({
   gap: theme.spacing(1),
 }));
 
-export const StyledAlertChips = styled(Box)(({ theme }) => ({
+/** Prose on the left, alerts in a narrower column on the right; one column below the md breakpoint. */
+export const StyledReportLayout = styled(Box)(({ theme }) => ({
+  display: 'grid',
+  gridTemplateColumns: 'minmax(0, 1fr) minmax(280px, 340px)',
+  gap: theme.spacing(4),
+  alignItems: 'start',
+
+  [theme.breakpoints.down('md')]: {
+    gridTemplateColumns: 'minmax(0, 1fr)',
+    gap: theme.spacing(2.5),
+  },
+}));
+
+export const StyledAlertsColumn = styled(Box)(({ theme }) => ({
   display: 'flex',
-  flexWrap: 'wrap',
+  flexDirection: 'column',
+  gap: theme.spacing(1.5),
+  minWidth: 0,
+}));
+
+/** Chips stacked vertically in the column; they wrap in rows when the column drops below the prose. */
+export const StyledAlertGroupChips = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'flex-start',
   gap: theme.spacing(1),
+
+  [theme.breakpoints.down('md')]: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
 }));
 
 /** Live summary while streaming: a blinking caret marks that more text is coming. */

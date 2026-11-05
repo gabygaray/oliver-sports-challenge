@@ -37,6 +37,9 @@ export const DASHBOARD_CONTENT = {
     warningLine: 'Advertencia',
     criticalLine: 'Crítico',
   },
+  analysis: {
+    tabsLabel: 'Análisis con IA',
+  },
   report: {
     title: 'Reporte con IA',
     languageLabel: 'Idioma',
@@ -47,10 +50,15 @@ export const DASHBOARD_CONTENT = {
     empty: 'Elegí idioma y audiencia, y generá el reporte de la sesión.',
     summaryTitle: 'Resumen',
     highlightsTitle: 'Jugadores destacados',
+    highlightsEmpty: 'Sin jugadores comparables para destacar en esta sesión.',
     alertsTitle: 'Alertas por umbral',
+    alertGroups: {
+      critical: 'Críticas',
+      warning: 'Advertencias',
+    },
     noAlerts: 'Ningún jugador superó los umbrales del equipo.',
     metaTemplate: (model: string, promptVersion: string, generatedAt: string) =>
-      `Generado por ${model} con el prompt v${promptVersion}, ${generatedAt}.`,
+      `Generado por ${model} con el prompt v${promptVersion}, ${generatedAt}`,
     cachedChip: 'Desde caché',
     stages: {
       cached: 'Recuperando el reporte guardado…',
@@ -69,6 +77,7 @@ export const DASHBOARD_CONTENT = {
     summaryTitle: 'Resumen',
     observationsTitle: 'Observaciones',
     trendsTitle: 'Variación entre la primera y la última sesión comparable',
+    per90: 'por 90 min',
     sessionsTitle: 'Sesiones',
     sessionColumn: 'Sesión',
     reducedMinutes: 'minutos reducidos',

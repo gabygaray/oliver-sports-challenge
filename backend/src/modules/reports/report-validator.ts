@@ -1,4 +1,5 @@
-import { NAME_SEQUENCE, NUMBER_TOKEN, SENTENCE_START } from './reports.constants';
+import { MetricKey } from '../../shared/enums';
+import { HIGHLIGHTS_TARGET, NAME_SEQUENCE, NUMBER_TOKEN, SENTENCE_START } from './reports.constants';
 import { ModelReport } from './reports.schemas';
 import { ReportContext } from './reports.types';
 
@@ -30,10 +31,7 @@ const findUnknownNumbers = (text: string, allowed: Set<number>, maxCount: number
         return !candidates.some((candidate) => allowed.has(candidate));
     });
 
-/**
- * A run of capitalised words that contains no known name is an unknown name. At a sentence start the
- * first word is capitalised whatever it is, so it is dropped before deciding; a single word left is not a name.
- */
+/** A run of capitalised words with no known name inside is an unknown name; the first word of a sentence does not count. */
 const findUnknownNames = (text: string, known: string[]): string[] => {
     const unknown: string[] = [];
     for (const match of text.matchAll(NAME_SEQUENCE)) {
@@ -68,10 +66,33 @@ export const findNamesOutsideContext = (texts: string[], context: unknown): stri
     return violations;
 };
 
-/** Both prose checks together: the figures and the names the model wrote must exist in the context. */
+/** Every snake_case key of the context (and the metric keys): none of them is an ordinary word, so one in the prose is a leak of the JSON. */
+const collectJsonKeys = (value: unknown, acc: Set<string>): Set<string> => {
+    if (Array.isArray(value)) for (const item of value) collectJsonKeys(item, acc);
+    else if (value && typeof value === 'object') {
+        for (const [key, item] of Object.entries(value)) {
+            if (key.includes('_')) acc.add(key);
+            collectJsonKeys(item, acc);
+        }
+    }
+    return acc;
+};
+
+export const findJsonKeysInProse = (texts: string[], context: unknown): string[] => {
+    const keys = [...collectJsonKeys(context, new Set(Object.values(MetricKey).filter((key) => key.includes('_'))))];
+    const violations: string[] = [];
+    for (const text of texts) {
+        const leaked = keys.filter((key) => text.includes(key));
+        if (leaked.length) violations.push(`JSON keys written in the prose instead of plain words: ${leaked.join(', ')}`);
+    }
+    return violations;
+};
+
+/** All prose checks together: the figures and the names the model wrote must exist in the context, and no JSON key may leak. */
 export const findProseOutsideContext = (texts: string[], context: unknown, maxCount: number): string[] => [
     ...findFiguresOutsideContext(texts, context, maxCount),
     ...findNamesOutsideContext(texts, context),
+    ...findJsonKeysInProse(texts, context),
 ];
 
 /** A highlight must point to a leader of the metric it names and quote that player's own value for it. */
@@ -92,6 +113,14 @@ const validateHighlight = (highlight: ModelReport['highlights'][number], context
 export const validateReportAgainstContext = (report: ModelReport, context: ReportContext): string[] => {
     const violations: string[] = [];
     const seen = new Set<number>();
+
+    const leaderIds = new Set(
+        Object.values(context.leaders)
+            .flat()
+            .map((leader) => leader.player_id),
+    );
+    const required = Math.min(HIGHLIGHTS_TARGET, leaderIds.size);
+    if (report.highlights.length < required) violations.push(`at least ${required} highlights are required, got ${report.highlights.length}`);
 
     for (const highlight of report.highlights) {
         if (seen.has(highlight.player_id)) violations.push(`player_id ${highlight.player_id} is highlighted more than once`);

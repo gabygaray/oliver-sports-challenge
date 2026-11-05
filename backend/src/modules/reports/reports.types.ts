@@ -42,7 +42,6 @@ export interface SessionAlertsSummary extends AlertsSummary {
 
 export interface TeamAggregates {
     players_count: number;
-    players_with_full_minutes: number;
     avg_total_distance_m: number;
     total_sprints: number;
     avg_rpe: number | null;

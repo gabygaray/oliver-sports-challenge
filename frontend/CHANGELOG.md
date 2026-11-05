@@ -2,6 +2,22 @@
 
 Frontend releases, by the `version` in `package.json`.
 
+## 1.1.0 - 2026-11-05
+
+### Added
+- Trend chips name the basis: totals read "(por 90 min)", max speed stays absolute, following `basis` in the evolution API.
+- Empty state for highlights when the API returns none (sessions with fewer than two comparable players).
+
+### Changed
+- Report result: alerts move to a column on the right, split into critical and warning groups and stacked vertically; below the md breakpoint the column drops under the prose and the chips wrap.
+- Loading states of the report and the evolution are skeletons with the layout of the result, and the summary streams inside its own block; the analysis card keeps a minimum height so empty, loading and error states do not resize it.
+- Layout: the chart spans the full width and the two AI analyses (session report, player evolution) share one tinted card as tabs below it. Both panels stay mounted, so a report in progress or already generated survives switching tabs.
+
+### Fixed
+- Chart Y axis grows to include the threshold lines, so a limit above every bar is drawn inside the chart instead of clipped at the top.
+- Alert chips keep "RPE" in capitals instead of lowercasing it like the other metric names.
+- Report meta line no longer ends with a double period after the time.
+
 ## 1.0.0 - 2026-11-05
 
 ### Added

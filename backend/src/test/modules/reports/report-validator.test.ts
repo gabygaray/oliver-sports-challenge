@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { MetricKey } from '../../../shared/enums';
 import { validateReportAgainstContext } from '../../../modules/reports/report-validator';
-import { buildFixtureContext } from '../../fixtures/report.fixtures';
+import { buildFixtureContext, ROWS_FIXTURE } from '../../fixtures/report.fixtures';
 import { ModelReport, modelReportSchema } from '../../../modules/reports/reports.schemas';
 
 const context = buildFixtureContext();
@@ -22,8 +22,18 @@ describe('validateReportAgainstContext', () => {
         expect(validateReportAgainstContext(report(), context)).toEqual([]);
     });
 
+    it('requires two highlights while the leaders allow it, and fewer when they do not', () => {
+        expect(validateReportAgainstContext(report({ highlights: [molinaDistance] }), context)).toEqual([
+            expect.stringContaining('at least 2 highlights'),
+        ]);
+
+        // Everybody below 75% of the minutes: no leaders, so an empty list is the right answer.
+        const benched = buildFixtureContext(ROWS_FIXTURE.map((row) => ({ ...row, minutes_played: 30 })));
+        expect(validateReportAgainstContext(report({ highlights: [] }), benched)).toEqual([]);
+    });
+
     it('rejects highlights of players outside the roster', () => {
-        const violations = validateReportAgainstContext(report({ highlights: [{ ...molinaDistance, player_id: 99 }] }), context);
+        const violations = validateReportAgainstContext(report({ highlights: [{ ...molinaDistance, player_id: 99 }, acostaSprints] }), context);
         expect(violations).toEqual([expect.stringContaining('unknown player_id 99')]);
     });
 
@@ -37,13 +47,16 @@ describe('validateReportAgainstContext', () => {
 
     it("rejects a highlight that attributes another player's figure", () => {
         // 10488 m exists in the data, but it is Molina's distance, not Acosta's.
-        const highlights: Highlight[] = [{ ...acostaSprints, metric: MetricKey.TotalDistanceM, value: 10488, reason: 'Corrió 10488 m.' }];
+        const highlights: Highlight[] = [
+            molinaDistance,
+            { ...acostaSprints, metric: MetricKey.TotalDistanceM, value: 10488, reason: 'Corrió 10488 m.' },
+        ];
         const violations = validateReportAgainstContext(report({ highlights }), context);
         expect(violations).toEqual([expect.stringContaining("Bruno Acosta's total_distance_m is 8840, not 10488")]);
     });
 
     it('rejects a highlight whose player is not a leader of that metric', () => {
-        const highlights: Highlight[] = [{ player_id: 1, metric: MetricKey.Sprints, value: 1, reason: 'Hizo 1 sprint.' }];
+        const highlights: Highlight[] = [molinaDistance, { player_id: 1, metric: MetricKey.Sprints, value: 1, reason: 'Hizo 1 sprint.' }];
         const violations = validateReportAgainstContext(report({ highlights }), context);
         expect(violations).toEqual([expect.stringContaining('Nicolás Herrera is not among the leaders of sprints')]);
     });
@@ -63,6 +76,14 @@ describe('validateReportAgainstContext', () => {
     it('accepts roster names anywhere in a sentence and a capitalised word opening a sentence', () => {
         const summary = 'Destacaron Santiago Molina y Bruno Acosta. In September the team covered 10488 m at most. Partido amistoso con alta carga.';
         expect(validateReportAgainstContext(report({ summary }), context)).toEqual([]);
+    });
+
+    it('rejects JSON keys written in the prose, metric keys and context keys alike', () => {
+        const summary = 'Alerts across workload_au, total_distance_m and rpe affected 5 players.';
+        expect(validateReportAgainstContext(report({ summary }), context)).toEqual([expect.stringContaining('total_distance_m, workload_au')]);
+
+        const leaked = 'La carga se mantuvo plana (alerts_summary: 0) para 2 jugadores.';
+        expect(validateReportAgainstContext(report({ summary: leaked }), context)).toEqual([expect.stringContaining('alerts_summary')]);
     });
 
     it('rejects figures that do not appear anywhere in the data', () => {

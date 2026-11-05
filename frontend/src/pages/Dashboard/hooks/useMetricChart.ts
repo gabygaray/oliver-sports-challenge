@@ -4,6 +4,7 @@ import { useTheme } from '@mui/material/styles';
 import { AlertLevel, IPlayerMetrics, MetricKey, TThresholdMap } from '../../../models';
 import { ALERT_LEVEL_COLOR, getAlertLevel } from '../../../utilities';
 import {
+  CHART_HEADROOM,
   DEFAULT_CHART_METRIC,
   IChartBar,
   IChartReferenceLine,
@@ -56,5 +57,13 @@ export const useMetricChart = (
     );
   }, [limits, palette]);
 
-  return { metric, setMetric, bars, barColors, referenceLines };
+  const yMax = useMemo(() => {
+    const values = [
+      ...bars.map(({ value }) => value ?? 0),
+      ...referenceLines.map(({ value }) => value),
+    ];
+    return Math.max(...values, 0) * CHART_HEADROOM;
+  }, [bars, referenceLines]);
+
+  return { metric, setMetric, bars, barColors, referenceLines, yMax };
 };

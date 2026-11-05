@@ -4,7 +4,7 @@ import { AiClient, AiJsonRequest, AiJsonResponse } from '../../../ai/ai.types';
 import { requestValidatedJson } from '../../../modules/reports/model-request';
 import { EXHAUSTED_VIOLATION, TRUNCATED_VIOLATION } from '../../../modules/reports/reports.constants';
 
-vi.mock('../../../config/logger', () => ({ logger: { info: vi.fn(), warn: vi.fn() } }));
+vi.mock('../../../config/logger', () => ({ logger: { info: vi.fn(), warn: vi.fn(), debug: vi.fn() } }));
 
 const answer = (overrides: Partial<AiJsonResponse>): AiJsonResponse => ({
     json: null,

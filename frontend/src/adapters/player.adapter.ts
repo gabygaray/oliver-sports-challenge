@@ -25,6 +25,7 @@ export const getPlayerEvolutionAdapter = (
   })),
   trends: response.trends.map(trend => ({
     metric: trend.metric,
+    basis: trend.basis,
     first: trend.first,
     last: trend.last,
     changePct: trend.change_pct,

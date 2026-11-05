@@ -1,13 +1,14 @@
 import { Button, CircularProgress } from '@mui/material';
 import { AutoAwesomeRounded } from '@mui/icons-material';
 
-import { FeedbackState, Section } from '../../../components';
+import { FeedbackState } from '../../../components';
 import { DASHBOARD_CONTENT } from '../content';
 import { useSessionReport } from '../hooks';
 import { StyledReportForm, StyledStreamingSummary } from '../styled-components';
 import { IReportPanelProps } from '../utilities';
 import { ReportOptions } from './ReportOptions';
 import { ReportResult } from './ReportResult';
+import { ReportSkeleton } from './ReportSkeleton';
 
 const { report: content } = DASHBOARD_CONTENT;
 
@@ -29,7 +30,7 @@ export const ReportPanel = ({ sessionId }: IReportPanelProps) => {
   const isLoading = status === 'loading';
 
   return (
-    <Section title={content.title} emphasis>
+    <>
       <StyledReportForm>
         <ReportOptions
           language={language}
@@ -55,15 +56,16 @@ export const ReportPanel = ({ sessionId }: IReportPanelProps) => {
         </Button>
       </StyledReportForm>
 
-      {/* Streaming: the summary types itself out while the rest of the report is still being written */}
-      {isLoading && !partialSummary && (
-        <FeedbackState
-          variant="loading"
+      {/* Streaming: the summary types itself out in the skeleton while the rest is still being written */}
+      {isLoading && (
+        <ReportSkeleton
           message={stage ? content.stages[stage] : content.loading}
+          summary={
+            partialSummary ? (
+              <StyledStreamingSummary>{partialSummary}</StyledStreamingSummary>
+            ) : undefined
+          }
         />
-      )}
-      {isLoading && partialSummary && (
-        <StyledStreamingSummary>{partialSummary}</StyledStreamingSummary>
       )}
 
       {status === 'error' && (
@@ -78,6 +80,6 @@ export const ReportPanel = ({ sessionId }: IReportPanelProps) => {
       {status === 'success' && report && (
         <ReportResult report={report} onRegenerate={regenerate} />
       )}
-    </Section>
+    </>
   );
 };

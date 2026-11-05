@@ -1,3 +1,6 @@
+import { ReactNode } from 'react';
+
+import { AnalysisTab } from './dashboard.enums';
 import {
   AlertLevel,
   IPlayer,
@@ -130,6 +133,23 @@ export interface IUseMetricChart {
   bars: IChartBar[];
   barColors: string[];
   referenceLines: IChartReferenceLine[];
+  /** Top of the Y axis: the highest bar or threshold plus headroom, so a threshold line is never clipped. */
+  yMax: number;
+}
+
+export interface IAnalysisTabsProps {
+  sessionId: number;
+}
+
+export interface IAnalysisTabPanelProps {
+  tab: AnalysisTab;
+  active: AnalysisTab;
+  children: ReactNode;
+}
+
+export interface IUseAnalysisTabs {
+  tab: AnalysisTab;
+  selectTab: (tab: AnalysisTab) => void;
 }
 
 export interface IMetricChartProps {
@@ -152,6 +172,21 @@ export interface IReportHighlightsProps {
 
 export interface IReportAlertsProps {
   alerts: IThresholdAlert[];
+}
+
+export interface IReportAlertGroupProps {
+  level: AlertLevel;
+  alerts: IThresholdAlert[];
+}
+
+export interface IReportSkeletonProps {
+  message: string;
+  /** The summary streamed so far, shown in place of its placeholder lines. */
+  summary?: ReactNode;
+}
+
+export interface IEvolutionSkeletonProps {
+  message: string;
 }
 
 export interface IMetricsSectionProps {

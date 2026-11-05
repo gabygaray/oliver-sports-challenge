@@ -1,4 +1,5 @@
 import { MetricKey } from './metric.enums';
+import { TrendBasis } from './player.enums';
 import { ReportAudience, ReportLanguage } from './report.enums';
 import { IReportMeta, IThresholdAlert } from './report.model';
 import { ISession } from './session.model';
@@ -20,6 +21,7 @@ export interface IPlayerSessionRow {
 
 export interface IMetricTrend {
   metric: MetricKey;
+  basis: TrendBasis;
   first: number | null;
   last: number | null;
   changePct: number | null;

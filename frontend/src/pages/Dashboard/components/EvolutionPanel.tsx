@@ -9,12 +9,13 @@ import {
 } from '@mui/material';
 import { TimelineRounded } from '@mui/icons-material';
 
-import { FeedbackState, Section } from '../../../components';
+import { FeedbackState } from '../../../components';
 import { DASHBOARD_CONTENT } from '../content';
 import { usePlayerEvolution } from '../hooks';
 import { StyledReportForm } from '../styled-components';
 import { SELECT_LABEL_IDS } from '../utilities';
 import { EvolutionResult } from './EvolutionResult';
+import { EvolutionSkeleton } from './EvolutionSkeleton';
 import { ReportOptions } from './ReportOptions';
 
 const { evolution: content } = DASHBOARD_CONTENT;
@@ -42,7 +43,7 @@ export const EvolutionPanel = () => {
     selectPlayer(Number(event.target.value));
 
   return (
-    <Section title={content.title}>
+    <>
       <StyledReportForm>
         <FormControl size="small" disabled={isLoading || isLoadingPlayers}>
           <InputLabel id={SELECT_LABEL_IDS.player}>{content.playerLabel}</InputLabel>
@@ -87,7 +88,7 @@ export const EvolutionPanel = () => {
       {isLoadingPlayers && (
         <FeedbackState variant="loading" message={content.loadingPlayers} />
       )}
-      {isLoading && <FeedbackState variant="loading" message={content.loading} />}
+      {isLoading && <EvolutionSkeleton message={content.loading} />}
       {isError && (
         <FeedbackState
           variant="error"
@@ -102,6 +103,6 @@ export const EvolutionPanel = () => {
       {report && !isLoading && (
         <EvolutionResult report={report} onRegenerate={regenerate} />
       )}
-    </Section>
+    </>
   );
 };

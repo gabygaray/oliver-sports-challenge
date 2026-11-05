@@ -1,3 +1,4 @@
+export * from './useAnalysisTabs';
 export * from './useMetricChart';
 export * from './usePlayerEvolution';
 export * from './useReportOptions';

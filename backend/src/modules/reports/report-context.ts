@@ -58,7 +58,6 @@ export const buildTeamAggregates = (rows: PlayerMetricsRow[], durationMin: numbe
 
     return {
         players_count: rows.length,
-        players_with_full_minutes: rows.filter((row) => row.minutes_played >= durationMin).length,
         avg_total_distance_m: round(avg(rows.map((row) => row.total_distance_m)), 0),
         total_sprints: rows.reduce((sum, row) => sum + row.sprints, 0),
         avg_rpe: withRpe.length ? round(avg(withRpe.map((row) => row.rpe as number))) : null,

@@ -34,6 +34,7 @@ export const requestValidatedJson = async <T>(
         if (parsed.success && !violations.length) return { data: parsed.data, model: response.model };
 
         logger.warn({ attempt, ...request.logContext, violations }, 'Model answer rejected');
+        logger.debug({ attempt, ...request.logContext, text: response.text }, 'Rejected answer text');
         retry = { previousAnswer: response.text || EMPTY_ANSWER_PLACEHOLDER, feedback: buildRetryFeedback(violations) };
     }
 
@@ -59,12 +60,10 @@ const callModel = async (client: AiClient, request: AiJsonRequest, progress: Rep
     try {
         if (!onSummary) return await client.generateJson(request);
 
-        // Only the summary is readable mid-stream; it is re-extracted from the growing JSON on every delta.
-        let buffer = '';
+        // Only the summary is readable mid-stream; it is re-extracted from the text so far on every delta.
         let lastSummary = '';
-        return await client.streamJson(request, (chunk) => {
-            buffer += chunk;
-            const summary = extractPartialSummary(buffer);
+        return await client.streamJson(request, (text) => {
+            const summary = extractPartialSummary(text);
             if (summary !== null && summary !== lastSummary) {
                 lastSummary = summary;
                 onSummary(summary);
