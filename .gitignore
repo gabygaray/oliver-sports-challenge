@@ -11,5 +11,4 @@ coverage/
 # Local notes and the challenge statement, never published
 CONTEXTO.md
 *.docx
-README.md
 session_data_root.json
