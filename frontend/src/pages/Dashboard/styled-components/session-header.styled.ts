@@ -2,6 +2,24 @@ import { alpha, Box, FormControl, styled, ToggleButtonGroup } from '@mui/materia
 
 import { TFactTone } from '../utilities';
 
+/** Logo and app name side by side on the band. */
+export const StyledBrand = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  alignItems: 'center',
+  gap: theme.spacing(1.5),
+
+  '& img': {
+    height: 22,
+    width: 'auto',
+    display: 'block',
+  },
+  '& .brand-divider': {
+    width: 1,
+    height: 18,
+    backgroundColor: alpha(theme.palette.brand.contrastText, 0.35),
+  },
+}));
+
 export const StyledHeroTop = styled(Box)(({ theme }) => ({
   display: 'flex',
   flexWrap: 'wrap',
@@ -20,7 +38,7 @@ export const StyledHeroTitle = styled(Box)(({ theme }) => ({
 
 /** The session select sits on the dark band, so field, label and icon take the band's text color. */
 export const StyledHeroSelect = styled(FormControl)(({ theme }) => {
-  const text = theme.palette.pitch.contrastText;
+  const text = theme.palette.brand.contrastText;
   return {
     minWidth: 360,
     [theme.breakpoints.down('sm')]: { width: '100%', minWidth: 0 },
@@ -51,7 +69,7 @@ export const StyledFactList = styled('ul')(({ theme }) => ({
 export const StyledFact = styled('li', {
   shouldForwardProp: prop => prop !== '$tone',
 })<{ $tone: TFactTone }>(({ theme, $tone }) => {
-  const text = theme.palette.pitch.contrastText;
+  const text = theme.palette.brand.contrastText;
   const toneColor = {
     critical: theme.palette.error.light,
     warning: theme.palette.warning.light,
@@ -83,7 +101,7 @@ export const StyledHeroControls = styled(Box)(({ theme }) => ({
 
 /** Language switch on the dark band: light borders and text, the selected one filled. */
 export const StyledHeroToggle = styled(ToggleButtonGroup)(({ theme }) => {
-  const text = theme.palette.pitch.contrastText;
+  const text = theme.palette.brand.contrastText;
   return {
     '& .MuiToggleButton-root': {
       color: alpha(text, 0.85),
@@ -92,7 +110,7 @@ export const StyledHeroToggle = styled(ToggleButtonGroup)(({ theme }) => {
       fontWeight: 600,
     },
     '& .MuiToggleButton-root.Mui-selected': {
-      color: theme.palette.pitch.main,
+      color: theme.palette.brand.main,
       backgroundColor: text,
     },
     '& .MuiToggleButton-root.Mui-selected:hover': {

@@ -2,6 +2,11 @@
 
 Frontend releases, by the `version` in `package.json`.
 
+## 1.2.0 - 2026-11-05
+
+### Changed
+- OLIVER identity: the header band carries the Oliver Sports logo from the site's navbar (white on navy) next to the app name, and the favicon is the brand mark. The palette comes from oliversports.ai: navy `#001c26` with the hero's deep-blue glow for the band, blue `#2378f8` for actions and the chart, pink `#e04080` as the tab indicator; alert tones stay as they were. The `pitch` palette slot becomes `brand`. The typeface is Rubik, the one the site uses, loaded from Google Fonts in place of IBM Plex Sans.
+
 ## 1.1.0 - 2026-11-05
 
 ### Added

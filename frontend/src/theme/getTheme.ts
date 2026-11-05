@@ -4,10 +4,11 @@ import { customPalette, FONT_FAMILY, TABULAR_FIGURES } from './themePrimitives';
 
 declare module '@mui/material/styles' {
   interface Palette {
-    pitch: Palette['primary'];
+    /** The navy band of the OLIVER site: header background, with its deep blue for the glow. */
+    brand: Palette['primary'];
   }
   interface PaletteOptions {
-    pitch?: PaletteOptions['primary'];
+    brand?: PaletteOptions['primary'];
   }
 }
 
@@ -15,7 +16,12 @@ export const getTheme = (): ThemeOptions => ({
   palette: {
     mode: 'light',
     primary: { main: customPalette.primary, dark: customPalette.primaryDark },
-    pitch: { main: customPalette.pitch, contrastText: customPalette.pitchText },
+    secondary: { main: customPalette.secondary },
+    brand: {
+      main: customPalette.brand,
+      light: customPalette.brandDeep,
+      contrastText: customPalette.brandText,
+    },
     warning: { main: customPalette.warning },
     error: { main: customPalette.critical },
     background: { default: customPalette.background, paper: customPalette.paper },
@@ -41,6 +47,8 @@ export const getTheme = (): ThemeOptions => ({
     MuiTableCell: {
       styleOverrides: {
         root: { whiteSpace: 'nowrap', fontFeatureSettings: TABULAR_FIGURES },
+        // Eleven columns have to fit a laptop screen without a horizontal scrollbar.
+        sizeSmall: { padding: '6px 10px' },
         head: { fontWeight: 600, color: customPalette.primaryDark },
       },
     },

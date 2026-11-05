@@ -1,9 +1,14 @@
 import { Typography } from '@mui/material';
 
 import { useLanguage } from '../../../contexts/language-context';
-import { formatLongDate } from '../../../utilities';
+import { BRAND_LOGO_SRC, BRAND_NAME, formatLongDate } from '../../../utilities';
 import { useSessionFacts } from '../hooks';
-import { StyledHeroControls, StyledHeroTitle, StyledHeroTop } from '../styled-components';
+import {
+  StyledBrand,
+  StyledHeroControls,
+  StyledHeroTitle,
+  StyledHeroTop,
+} from '../styled-components';
 import { ISessionHeaderProps } from '../utilities';
 import { LanguageToggle } from './LanguageToggle';
 import { SessionFacts } from './SessionFacts';
@@ -19,7 +24,11 @@ export const SessionHeader = ({ selection, metrics }: ISessionHeaderProps) => {
   return (
     <>
       <StyledHeroTop>
-        <Typography variant="body2">{t.appName}</Typography>
+        <StyledBrand>
+          <img src={BRAND_LOGO_SRC} alt={BRAND_NAME} />
+          <span className="brand-divider" aria-hidden />
+          <Typography variant="body2">{t.appName}</Typography>
+        </StyledBrand>
         <StyledHeroControls>
           <SessionSelector
             sessions={sessions}

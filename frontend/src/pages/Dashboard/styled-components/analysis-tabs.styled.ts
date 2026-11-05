@@ -3,6 +3,10 @@ import { Box, styled, Tabs } from '@mui/material';
 export const StyledAnalysisTabs = styled(Tabs)(({ theme }) => ({
   borderBottom: `1px solid ${theme.palette.divider}`,
   marginTop: theme.spacing(-1),
+
+  '& .MuiTabs-indicator': {
+    backgroundColor: theme.palette.secondary.main,
+  },
 }));
 
 /** Same vertical rhythm as a section body, so a panel reads like the card it replaced. */
