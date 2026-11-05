@@ -10,7 +10,7 @@ import {
 import { TimelineRounded } from '@mui/icons-material';
 
 import { FeedbackState } from '../../../components';
-import { DASHBOARD_CONTENT } from '../content';
+import { useLanguage } from '../../../contexts/language-context';
 import { usePlayerEvolution } from '../hooks';
 import { StyledReportForm } from '../styled-components';
 import { SELECT_LABEL_IDS } from '../utilities';
@@ -18,17 +18,15 @@ import { EvolutionResult } from './EvolutionResult';
 import { EvolutionSkeleton } from './EvolutionSkeleton';
 import { ReportOptions } from './ReportOptions';
 
-const { evolution: content } = DASHBOARD_CONTENT;
-
 export const EvolutionPanel = () => {
+  const { t, language } = useLanguage();
+  const content = t.dashboard.evolution;
   const {
     players,
     selectedPlayerId,
     selectPlayer,
     isLoadingPlayers,
-    language,
     audience,
-    setLanguage,
     setAudience,
     report,
     isLoading,
@@ -41,6 +39,7 @@ export const EvolutionPanel = () => {
 
   const handlePlayerChange = (event: SelectChangeEvent<string>) =>
     selectPlayer(Number(event.target.value));
+  const otherLanguage = report !== null && report.meta.language !== language;
 
   return (
     <>
@@ -61,10 +60,8 @@ export const EvolutionPanel = () => {
           </Select>
         </FormControl>
         <ReportOptions
-          language={language}
           audience={audience}
           disabled={isLoading}
-          setLanguage={setLanguage}
           setAudience={setAudience}
         />
         <Button
@@ -82,6 +79,16 @@ export const EvolutionPanel = () => {
         >
           {content.generate}
         </Button>
+        {otherLanguage && (
+          <Button
+            type="button"
+            variant="outlined"
+            disabled={isLoading}
+            onClick={generate}
+          >
+            {t.dashboard.report.regenerateIn(t.languageLabels[language])}
+          </Button>
+        )}
       </StyledReportForm>
 
       {/* Evolution report states */}
@@ -93,7 +100,7 @@ export const EvolutionPanel = () => {
         <FeedbackState
           variant="error"
           message={errorMessage}
-          retryLabel={DASHBOARD_CONTENT.retry}
+          retryLabel={t.dashboard.retry}
           onRetry={generate}
         />
       )}

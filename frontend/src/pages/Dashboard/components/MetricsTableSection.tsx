@@ -1,12 +1,12 @@
 import { FeedbackState, Section } from '../../../components';
-import { DASHBOARD_CONTENT } from '../content';
+import { useLanguage } from '../../../contexts/language-context';
 import { IMetricsTableSectionProps } from '../utilities';
 import { MetricsTable } from './MetricsTable';
 import { ThresholdLegend } from './ThresholdLegend';
 
-const { metrics: content } = DASHBOARD_CONTENT;
-
 export const MetricsTableSection = ({ metrics }: IMetricsTableSectionProps) => {
+  const { t } = useLanguage();
+  const content = t.dashboard.metrics;
   const {
     players,
     thresholds,
@@ -26,7 +26,7 @@ export const MetricsTableSection = ({ metrics }: IMetricsTableSectionProps) => {
         <FeedbackState
           variant="error"
           message={errorMessage}
-          retryLabel={DASHBOARD_CONTENT.retry}
+          retryLabel={t.dashboard.retry}
           onRetry={refetch}
         />
       )}

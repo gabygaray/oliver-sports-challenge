@@ -3,11 +3,13 @@ import { skipToken } from '@reduxjs/toolkit/query';
 
 import { MetricKey } from '../../../models';
 import { useGetSessionMetricsQuery } from '../../../services';
-import { getApiError } from '../../../utilities';
+import { useLanguage } from '../../../contexts/language-context';
+import { getApiError, resolveApiErrorMessage } from '../../../utilities';
 import { INITIAL_SORT, ISortState, IUseSessionMetrics } from '../utilities';
 
 /** Metrics of the selected session, sorted by the API according to the active column. */
 export const useSessionMetrics = (sessionId: number | null): IUseSessionMetrics => {
+  const { t } = useLanguage();
   const [sort, setSort] = useState<ISortState>(INITIAL_SORT);
 
   const { data, isLoading, isFetching, isError, error, refetch } =
@@ -34,7 +36,7 @@ export const useSessionMetrics = (sessionId: number | null): IUseSessionMetrics 
     isLoading,
     isFetching,
     isError,
-    errorMessage: isError ? getApiError(error).message : '',
+    errorMessage: isError ? resolveApiErrorMessage(getApiError(error), t.apiErrors) : '',
     refetch,
   };
 };

@@ -1,7 +1,7 @@
 import { Tab } from '@mui/material';
 
+import { useLanguage } from '../../../contexts/language-context';
 import { StyledSection } from '../../../styled-components';
-import { DASHBOARD_CONTENT } from '../content';
 import { useAnalysisTabs } from '../hooks';
 import { StyledAnalysisTabs } from '../styled-components';
 import {
@@ -14,23 +14,23 @@ import { AnalysisTabPanel } from './AnalysisTabPanel';
 import { EvolutionPanel } from './EvolutionPanel';
 import { ReportPanel } from './ReportPanel';
 
-const TABS = [
-  { tab: AnalysisTab.Report, label: DASHBOARD_CONTENT.report.title },
-  { tab: AnalysisTab.Evolution, label: DASHBOARD_CONTENT.evolution.title },
-];
-
 /** The two AI analyses share one card: the session report and the player evolution. */
 export const AnalysisTabs = ({ sessionId }: IAnalysisTabsProps) => {
+  const { t } = useLanguage();
   const { tab, selectTab } = useAnalysisTabs();
+  const tabs = [
+    { tab: AnalysisTab.Report, label: t.dashboard.report.title },
+    { tab: AnalysisTab.Evolution, label: t.dashboard.evolution.title },
+  ];
 
   return (
     <StyledSection as="section" $emphasis>
       <StyledAnalysisTabs
         value={tab}
         onChange={(_event, value: AnalysisTab) => selectTab(value)}
-        aria-label={DASHBOARD_CONTENT.analysis.tabsLabel}
+        aria-label={t.dashboard.analysis.tabsLabel}
       >
-        {TABS.map(({ tab: value, label }) => (
+        {tabs.map(({ tab: value, label }) => (
           <Tab
             key={value}
             value={value}

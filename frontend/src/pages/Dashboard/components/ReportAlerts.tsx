@@ -1,16 +1,18 @@
 import { Stack, Typography } from '@mui/material';
 
+import { useLanguage } from '../../../contexts/language-context';
 import { AlertLevel } from '../../../models';
-import { DASHBOARD_CONTENT } from '../content';
 import { groupAlertsByLevel, IReportAlertsProps } from '../utilities';
 import { ReportAlertGroup } from './ReportAlertGroup';
 
 /** Critical alerts first, then warnings, each group stacked so the column scans top to bottom. */
 export const ReportAlerts = ({ alerts }: IReportAlertsProps) => {
+  const { t } = useLanguage();
+
   if (!alerts.length) {
     return (
       <Typography variant="body2" color="text.secondary">
-        {DASHBOARD_CONTENT.report.noAlerts}
+        {t.dashboard.report.noAlerts}
       </Typography>
     );
   }

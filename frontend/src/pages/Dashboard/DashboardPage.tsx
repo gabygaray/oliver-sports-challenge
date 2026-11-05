@@ -1,14 +1,15 @@
 import { FeedbackState, PageContainer } from '../../components';
+import { useLanguage } from '../../contexts/language-context';
 import {
   AnalysisTabs,
   MetricChart,
   MetricsTableSection,
   SessionHeader,
 } from './components';
-import { DASHBOARD_CONTENT } from './content';
 import { useSessionMetrics, useSessionSelection } from './hooks';
 
 const DashboardPage = () => {
+  const { t } = useLanguage();
   const selection = useSessionSelection();
   const metrics = useSessionMetrics(selection.selectedSessionId);
   const { sessions, selectedSessionId, isLoading, isError, errorMessage, refetch } =
@@ -19,18 +20,18 @@ const DashboardPage = () => {
     <PageContainer hero={<SessionHeader selection={selection} metrics={metrics} />}>
       {/* Session list states */}
       {isLoading && (
-        <FeedbackState variant="loading" message={DASHBOARD_CONTENT.loadingSessions} />
+        <FeedbackState variant="loading" message={t.dashboard.loadingSessions} />
       )}
       {isError && (
         <FeedbackState
           variant="error"
           message={errorMessage}
-          retryLabel={DASHBOARD_CONTENT.retry}
+          retryLabel={t.dashboard.retry}
           onRetry={refetch}
         />
       )}
       {!isLoading && !isError && !sessions.length && (
-        <FeedbackState variant="empty" message={DASHBOARD_CONTENT.emptySessions} />
+        <FeedbackState variant="empty" message={t.dashboard.emptySessions} />
       )}
 
       {/* Data of the selected session, then the two AI analyses in tabs */}

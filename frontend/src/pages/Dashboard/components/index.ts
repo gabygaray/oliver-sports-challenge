@@ -5,6 +5,7 @@ export * from './EvolutionResult';
 export * from './EvolutionSkeleton';
 export * from './EvolutionSessionsTable';
 export * from './EvolutionTrends';
+export * from './LanguageToggle';
 export * from './MetricCell';
 export * from './MetricChart';
 export * from './MetricColumnHeader';

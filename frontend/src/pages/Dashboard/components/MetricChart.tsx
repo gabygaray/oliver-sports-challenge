@@ -8,15 +8,14 @@ import {
 import { ChartsReferenceLine } from '@mui/x-charts/ChartsReferenceLine';
 
 import { Section } from '../../../components';
+import { useLanguage } from '../../../contexts/language-context';
 import { MetricKey } from '../../../models';
 import {
   formatMetricLabelWithUnit,
   formatMetricValue,
   formatMetricWithUnit,
   METRIC_KEYS,
-  METRIC_LABELS,
 } from '../../../utilities';
-import { ALERT_LINE_LABELS, DASHBOARD_CONTENT } from '../content';
 import { useMetricChart } from '../hooks';
 import { StyledBarChart } from '../styled-components';
 import {
@@ -30,6 +29,8 @@ import {
 } from '../utilities';
 
 export const MetricChart = ({ players, thresholds }: IMetricChartProps) => {
+  const { t, locale } = useLanguage();
+  const content = t.dashboard.chart;
   const { metric, setMetric, bars, barColors, referenceLines, yMax } = useMetricChart(
     players,
     thresholds,
@@ -40,21 +41,21 @@ export const MetricChart = ({ players, thresholds }: IMetricChartProps) => {
 
   return (
     <Section
-      title={DASHBOARD_CONTENT.chart.title}
+      title={content.title}
       actions={
         <FormControl size="small">
           <InputLabel id={SELECT_LABEL_IDS.chartMetric}>
-            {DASHBOARD_CONTENT.chart.metricSelectorLabel}
+            {content.metricSelectorLabel}
           </InputLabel>
           <Select
             labelId={SELECT_LABEL_IDS.chartMetric}
-            label={DASHBOARD_CONTENT.chart.metricSelectorLabel}
+            label={content.metricSelectorLabel}
             value={metric}
             onChange={handleMetricChange}
           >
             {METRIC_KEYS.map(key => (
               <MenuItem key={key} value={key}>
-                {METRIC_LABELS[key]}
+                {t.metricLabels[key]}
               </MenuItem>
             ))}
           </Select>
@@ -71,7 +72,7 @@ export const MetricChart = ({ players, thresholds }: IMetricChartProps) => {
           {
             scaleType: 'band',
             dataKey: CHART_LABEL_KEY,
-            label: DASHBOARD_CONTENT.chart.playerAxis,
+            label: content.playerAxis,
             tickLabelStyle: CHART_AXIS_LABEL_STYLE,
             colorMap: {
               type: 'ordinal',
@@ -82,16 +83,16 @@ export const MetricChart = ({ players, thresholds }: IMetricChartProps) => {
         ]}
         yAxis={[
           {
-            label: formatMetricLabelWithUnit(metric),
-            valueFormatter: formatMetricValue,
+            label: formatMetricLabelWithUnit(metric, t.metricLabels[metric]),
+            valueFormatter: (value: number | null) => formatMetricValue(value, locale),
             max: yMax,
           },
         ]}
         series={[
           {
             dataKey: CHART_VALUE_KEY,
-            label: METRIC_LABELS[metric],
-            valueFormatter: value => formatMetricWithUnit(metric, value),
+            label: t.metricLabels[metric],
+            valueFormatter: value => formatMetricWithUnit(metric, value, locale),
           },
         ]}
         slotProps={{ legend: { hidden: true } }}
@@ -101,7 +102,7 @@ export const MetricChart = ({ players, thresholds }: IMetricChartProps) => {
           <ChartsReferenceLine
             key={level}
             y={value}
-            label={ALERT_LINE_LABELS[level]}
+            label={content.lineLabels[level]}
             labelAlign="end"
             lineStyle={{ stroke: color, strokeDasharray: '6 4' }}
             labelStyle={{ fill: labelColor, fontSize: 12 }}

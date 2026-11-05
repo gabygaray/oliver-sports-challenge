@@ -1,7 +1,7 @@
 import { InputLabel, MenuItem, Select, SelectChangeEvent } from '@mui/material';
 
+import { useLanguage } from '../../../contexts/language-context';
 import { formatDate } from '../../../utilities';
-import { DASHBOARD_CONTENT } from '../content';
 import { StyledHeroSelect } from '../styled-components';
 import { ISessionSelectorProps, SELECT_LABEL_IDS } from '../utilities';
 
@@ -11,23 +11,24 @@ export const SessionSelector = ({
   isLoading,
   onChange,
 }: ISessionSelectorProps) => {
+  const { t, locale } = useLanguage();
   const handleChange = (event: SelectChangeEvent<string>) =>
     onChange(Number(event.target.value));
 
   return (
     <StyledHeroSelect size="small" disabled={isLoading || !sessions.length}>
       <InputLabel id={SELECT_LABEL_IDS.session}>
-        {DASHBOARD_CONTENT.sessionSelectorLabel}
+        {t.dashboard.sessionSelectorLabel}
       </InputLabel>
       <Select
         labelId={SELECT_LABEL_IDS.session}
-        label={DASHBOARD_CONTENT.sessionSelectorLabel}
+        label={t.dashboard.sessionSelectorLabel}
         value={selectedSessionId === null ? '' : String(selectedSessionId)}
         onChange={handleChange}
       >
         {sessions.map(session => (
           <MenuItem key={session.id} value={String(session.id)}>
-            {formatDate(session.date)}: {session.title}
+            {formatDate(session.date, locale)}: {session.title}
           </MenuItem>
         ))}
       </Select>

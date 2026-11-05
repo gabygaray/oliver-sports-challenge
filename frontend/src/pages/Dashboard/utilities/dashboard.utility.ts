@@ -9,12 +9,7 @@ import {
   MetricKey,
   TThresholdMap,
 } from '../../../models';
-import {
-  formatMetricWithUnit,
-  getAlertLevel,
-  METRIC_KEYS,
-  METRIC_LABELS,
-} from '../../../utilities';
+import { formatMetricWithUnit, getAlertLevel, METRIC_KEYS } from '../../../utilities';
 import { REDUCED_MINUTES_RATIO } from './dashboard.constants';
 import { ISessionFacts, IThresholdLegendPart, TFactTone } from './dashboard.types';
 
@@ -42,17 +37,18 @@ export const summarizeSession = (
 export const getThresholdLegendParts = (
   metric: MetricKey,
   limits: IThresholdLimits,
+  locale: string,
 ): IThresholdLegendPart[] => {
   const parts = [
     {
       level: AlertLevel.Warning,
-      label: `> ${formatMetricWithUnit(metric, limits.warning)}`,
+      label: `> ${formatMetricWithUnit(metric, limits.warning, locale)}`,
     },
   ];
   if (limits.critical !== null) {
     parts.push({
       level: AlertLevel.Critical,
-      label: `> ${formatMetricWithUnit(metric, limits.critical)}`,
+      label: `> ${formatMetricWithUnit(metric, limits.critical, locale)}`,
     });
   }
   return parts;
@@ -63,8 +59,12 @@ const inSentence = (label: string): string =>
   label === label.toUpperCase() ? label : label.toLowerCase();
 
 /** "Santiago Molina, carga 810 AU (> 750 AU)"; the level is the group the chip sits in. */
-export const formatAlertChip = (alert: IThresholdAlert): string =>
-  `${alert.playerName}, ${inSentence(METRIC_LABELS[alert.metric])} ${formatMetricWithUnit(alert.metric, alert.value)} (> ${formatMetricWithUnit(alert.metric, alert.limit)})`;
+export const formatAlertChip = (
+  alert: IThresholdAlert,
+  metricLabels: Record<MetricKey, string>,
+  locale: string,
+): string =>
+  `${alert.playerName}, ${inSentence(metricLabels[alert.metric])} ${formatMetricWithUnit(alert.metric, alert.value, locale)} (> ${formatMetricWithUnit(alert.metric, alert.limit, locale)})`;
 
 export const groupAlertsByLevel = (
   alerts: IThresholdAlert[],

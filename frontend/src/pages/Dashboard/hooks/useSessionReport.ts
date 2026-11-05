@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { ISessionReport, TReportStage } from '../../../models';
+import { useLanguage } from '../../../contexts/language-context';
 import { openReportStream } from '../../../services';
+import { resolveApiErrorMessage } from '../../../utilities';
 import { IUseSessionReportStream, TReportStatus } from '../utilities';
 import { useReportOptions } from './useReportOptions';
 
 /** Streams the session report over SSE: the summary grows live, the full report lands at the end. */
 export const useSessionReport = (sessionId: number): IUseSessionReportStream => {
+  const { t } = useLanguage();
   const options = useReportOptions();
   const [status, setStatus] = useState<TReportStatus>('idle');
   const [stage, setStage] = useState<TReportStage | null>(null);
@@ -40,7 +43,7 @@ export const useSessionReport = (sessionId: number): IUseSessionReportStream => 
           setStatus('success');
         },
         onError: error => {
-          setErrorMessage(error.message);
+          setErrorMessage(resolveApiErrorMessage(error, t.apiErrors));
           setStatus('error');
         },
       },

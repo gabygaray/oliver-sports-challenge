@@ -2,7 +2,7 @@ import { Button, CircularProgress } from '@mui/material';
 import { AutoAwesomeRounded } from '@mui/icons-material';
 
 import { FeedbackState } from '../../../components';
-import { DASHBOARD_CONTENT } from '../content';
+import { useLanguage } from '../../../contexts/language-context';
 import { useSessionReport } from '../hooks';
 import { StyledReportForm, StyledStreamingSummary } from '../styled-components';
 import { IReportPanelProps } from '../utilities';
@@ -10,13 +10,11 @@ import { ReportOptions } from './ReportOptions';
 import { ReportResult } from './ReportResult';
 import { ReportSkeleton } from './ReportSkeleton';
 
-const { report: content } = DASHBOARD_CONTENT;
-
 export const ReportPanel = ({ sessionId }: IReportPanelProps) => {
+  const { t, language } = useLanguage();
+  const content = t.dashboard.report;
   const {
-    language,
     audience,
-    setLanguage,
     setAudience,
     status,
     stage,
@@ -28,15 +26,15 @@ export const ReportPanel = ({ sessionId }: IReportPanelProps) => {
   } = useSessionReport(sessionId);
 
   const isLoading = status === 'loading';
+  // A report in the other language can be asked again in the app's; the cache answers when it exists.
+  const otherLanguage = report !== null && report.meta.language !== language;
 
   return (
     <>
       <StyledReportForm>
         <ReportOptions
-          language={language}
           audience={audience}
           disabled={isLoading}
-          setLanguage={setLanguage}
           setAudience={setAudience}
         />
         <Button
@@ -54,6 +52,16 @@ export const ReportPanel = ({ sessionId }: IReportPanelProps) => {
         >
           {content.generate}
         </Button>
+        {otherLanguage && (
+          <Button
+            type="button"
+            variant="outlined"
+            disabled={isLoading}
+            onClick={generate}
+          >
+            {content.regenerateIn(t.languageLabels[language])}
+          </Button>
+        )}
       </StyledReportForm>
 
       {/* Streaming: the summary types itself out in the skeleton while the rest is still being written */}
@@ -72,7 +80,7 @@ export const ReportPanel = ({ sessionId }: IReportPanelProps) => {
         <FeedbackState
           variant="error"
           message={errorMessage}
-          retryLabel={DASHBOARD_CONTENT.retry}
+          retryLabel={t.dashboard.retry}
           onRetry={generate}
         />
       )}

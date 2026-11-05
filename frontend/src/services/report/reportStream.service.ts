@@ -9,10 +9,7 @@ import {
 import { config } from '../api';
 import { QUERY_URL_SESSIONS } from '../URL';
 
-/**
- * Opens the Server-Sent Events channel for a session report. Returns a function that closes it;
- * the channel also closes itself after the final `report` or `error` event.
- */
+/** Opens the SSE channel for a session report and returns a function that closes it; it also closes itself after the final event. */
 export const openReportStream = (
   { sessionId, language, audience, force = false }: IReportParams,
   handlers: IReportStreamHandlers,

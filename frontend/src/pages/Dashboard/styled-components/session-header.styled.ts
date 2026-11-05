@@ -1,4 +1,4 @@
-import { alpha, Box, FormControl, styled } from '@mui/material';
+import { alpha, Box, FormControl, styled, ToggleButtonGroup } from '@mui/material';
 
 import { TFactTone } from '../utilities';
 
@@ -70,6 +70,33 @@ export const StyledFact = styled('li', {
       letterSpacing: '-0.02em',
       fontFeatureSettings: '"tnum" 1',
       color: toneColor,
+    },
+  };
+});
+
+export const StyledHeroControls = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  flexWrap: 'wrap',
+  alignItems: 'center',
+  gap: theme.spacing(2),
+}));
+
+/** Language switch on the dark band: light borders and text, the selected one filled. */
+export const StyledHeroToggle = styled(ToggleButtonGroup)(({ theme }) => {
+  const text = theme.palette.pitch.contrastText;
+  return {
+    '& .MuiToggleButton-root': {
+      color: alpha(text, 0.85),
+      borderColor: alpha(text, 0.45),
+      paddingInline: theme.spacing(1.5),
+      fontWeight: 600,
+    },
+    '& .MuiToggleButton-root.Mui-selected': {
+      color: theme.palette.pitch.main,
+      backgroundColor: text,
+    },
+    '& .MuiToggleButton-root.Mui-selected:hover': {
+      backgroundColor: alpha(text, 0.9),
     },
   };
 });

@@ -1,15 +1,17 @@
 import { Tooltip, Typography } from '@mui/material';
 
-import { METRIC_DESCRIPTIONS, METRIC_LABELS, METRIC_UNITS } from '../../../utilities';
+import { useLanguage } from '../../../contexts/language-context';
+import { METRIC_UNITS } from '../../../utilities';
 import { StyledColumnHeader, StyledInfoIcon } from '../styled-components';
 import { IMetricColumnHeaderProps, stopEventPropagation } from '../utilities';
 
 export const MetricColumnHeader = ({ metric }: IMetricColumnHeaderProps) => {
-  const description = METRIC_DESCRIPTIONS[metric];
+  const { t } = useLanguage();
+  const description = t.metricDescriptions[metric];
 
   return (
     <StyledColumnHeader>
-      {METRIC_LABELS[metric]}
+      {t.metricLabels[metric]}
       {METRIC_UNITS[metric] && (
         <Typography component="span" variant="caption" color="text.secondary">
           &nbsp;({METRIC_UNITS[metric]})

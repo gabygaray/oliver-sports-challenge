@@ -196,14 +196,16 @@ export interface IMetricsSectionProps {
 export type TReportStatus = 'idle' | 'loading' | 'success' | 'error';
 
 export interface IUseReportOptions {
+  /** The app language: the report is written in the language the screen is read in. */
   language: ReportLanguage;
   audience: ReportAudience;
-  setLanguage: (language: ReportLanguage) => void;
   setAudience: (audience: ReportAudience) => void;
 }
 
-export interface IReportOptionsProps extends IUseReportOptions {
+export interface IReportOptionsProps {
+  audience: ReportAudience;
   disabled: boolean;
+  setAudience: (audience: ReportAudience) => void;
 }
 
 export interface IUseSessionReportStream extends IUseReportOptions {

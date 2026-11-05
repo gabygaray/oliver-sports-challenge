@@ -5,8 +5,3 @@ export const ALERT_LEVEL_COLOR: Record<AlertLevel, 'warning' | 'error'> = {
   [AlertLevel.Warning]: 'warning',
   [AlertLevel.Critical]: 'error',
 };
-
-export const ALERT_LEVEL_LABELS: Record<AlertLevel, string> = {
-  [AlertLevel.Warning]: 'Advertencia',
-  [AlertLevel.Critical]: 'Crítico',
-};

@@ -5,6 +5,7 @@ Frontend releases, by the `version` in `package.json`.
 ## 1.1.0 - 2026-11-05
 
 ### Added
+- The whole UI is available in Spanish and English: an ES / EN switch in the header changes every text, the number and date formats and MUI's own strings, and the reports are requested in that same language, so the language select left the report forms. The choice is remembered in the browser. A report already on screen keeps its language and offers, next to the generate button, a "Regenerar en inglés" / "Regenerate in Spanish" action that asks for it in the app language (served from the cache when it exists).
 - Trend chips name the basis: totals read "(por 90 min)", max speed stays absolute, following `basis` in the evolution API.
 - Empty state for highlights when the API returns none (sessions with fewer than two comparable players).
 
