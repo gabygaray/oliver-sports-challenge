@@ -1,0 +1,47 @@
+{
+  "name": "oliver-challenge-backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Session metrics API with AI-generated reports",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/server.js",
+    "typeorm": "tsx ./node_modules/typeorm/cli.js -d src/config/data-source.ts",
+    "migration:run": "yarn typeorm migration:run",
+    "migration:revert": "yarn typeorm migration:revert",
+    "seed": "tsx src/seed/seed.ts",
+    "db:setup": "yarn migration:run && yarn seed",
+    "lint": "eslint \"src/**/*.ts\" --fix",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^5.1.0",
+    "helmet": "^8.1.0",
+    "pg": "^8.13.1",
+    "pino": "^9.6.0",
+    "pino-http": "^10.4.0",
+    "reflect-metadata": "^0.2.2",
+    "typeorm": "^0.3.20",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.1",
+    "@types/node": "^22.13.5",
+    "eslint": "^9.21.0",
+    "eslint-config-prettier": "^10.0.1",
+    "eslint-plugin-prettier": "^5.2.3",
+    "pino-pretty": "^13.0.0",
+    "prettier": "^3.5.2",
+    "tsx": "^4.19.3",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.25.0",
+    "vitest": "^2.1.0"
+  }
+}
