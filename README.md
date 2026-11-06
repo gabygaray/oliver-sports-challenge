@@ -106,6 +106,9 @@ Frontend (`frontend/.env`):
 
 ```
 .
+├── docs/
+│   ├── FLOW.md                   Flujo de un reporte con IA, con diagrama y notas por etapa
+│   └── PROCESO.md                Cómo se construyó: etapas, revisiones, decisiones y verificación
 ├── backend/
 │   ├── docker-compose.yml        PostgreSQL para desarrollo
 │   ├── session_data.json         Dataset del enunciado, fuente del seed
@@ -142,6 +145,13 @@ Frontend (`frontend/.env`):
 Cada módulo del backend sigue la misma secuencia: `router` → `controller` → `service` → `repository`, con `schemas` (Zod), `mappers`, `types` y `constants` en archivos propios. Cada prompt vive en `prompts/` con su versión, su `CHANGELOG.md` y un test de snapshot que falla ante cualquier cambio de redacción.
 
 En el frontend la regla es servicios → adaptadores → modelos: los componentes sólo renderizan, la lógica vive en hooks, los estilos en styled-components, y constantes, tipos, enums y helpers tienen cada uno su archivo.
+
+## Documentación del proceso
+
+Dos documentos acompañan a este README:
+
+- [docs/FLOW.md](docs/FLOW.md): el recorrido de un reporte con IA, con un diagrama y notas por etapa sobre qué se busca con cada paso y la decisión que hay detrás.
+- [docs/PROCESO.md](docs/PROCESO.md): cómo se construyó el proyecto, en qué orden, qué revisiones hubo y qué se aceptó o descartó de cada una, y cómo se verificó cada etapa.
 
 ## Consideraciones
 
@@ -239,4 +249,4 @@ Una sola página. La banda del encabezado lleva el logo, el selector de sesión,
 
 ## Herramientas de IA utilizadas
 
-Utilicé Claude Code (Anthropic) como pair programmer durante el desarrollo. Me asistió con el armado del esqueleto de los módulos y las capas del frontend, redactó los tests a partir de los casos borde señalados en el dataset, hizo de revisor del prompt y del validador frente a respuestas reales del modelo, y ejecutó pruebas de punta a punta sobre la API y la interfaz. Las decisiones documentadas en este archivo (umbrales estrictos, qué recibe el modelo, qué comprueba el validador, la política de reintentos, la proyección de las tendencias) las tomé y revisé personalmente; cada cambio generado fue leído antes de quedar, y los prompts se iteraron contra respuestas reales del modelo en lugar de aceptarse tal como estaban. La estructura de carpetas, los patrones de diseño, la separación de responsabilidades en el frontend y en el backend y el uso de tipado estricto, entre otras prácticas, también fueron decisiones mías.
+Utilicé Claude Code (Anthropic) como pair programmer durante el desarrollo. Me asistió con el armado del esqueleto de los módulos y las capas del frontend, redactó los tests a partir de los casos borde señalados en el dataset, hizo de revisor del prompt y del validador frente a respuestas reales del modelo, y ejecutó pruebas de punta a punta sobre la API y la interfaz. Las decisiones documentadas en este archivo (umbrales estrictos, qué recibe el modelo, qué comprueba el validador, la política de reintentos, la proyección de las tendencias) las tomé y revisé personalmente; cada cambio generado fue leído antes de quedar, y los prompts se iteraron contra respuestas reales del modelo en lugar de aceptarse tal como estaban. El detalle del proceso, con las revisiones que hubo y lo que se aceptó o descartó de cada una, está en [docs/PROCESO.md](docs/PROCESO.md); el recorrido técnico de un reporte, en [docs/FLOW.md](docs/FLOW.md). La estructura de carpetas, los patrones de diseño, la separación de responsabilidades en el frontend y en el backend y el uso de tipado estricto, entre otras prácticas, también fueron decisiones mías.
